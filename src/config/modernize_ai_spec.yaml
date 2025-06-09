@@ -1,0 +1,303 @@
+modernize_ai_specification:
+  title: Modernize.AI – Agent-Led Migration Specification
+
+  owner: Dan Eggs
+  domain: Cloud Migration & Modernisation
+  version: 3.0
+  last_updated: 2025-01-20
+
+  description: >
+    This specification defines the principles and validation points used to assess whether a proposed migration aligns with the Modernize.AI 
+    framework. It prioritises fast, GenAI-assisted, dual-track migrations over long-running, big-bang programmes, ensuring every stage leverages 
+    automation, LLMs, and platform-agnostic workflows. It is used in pre-sales, planning, and delivery QA across both AWS and Azure environments.
+    The framework follows a 3-stage approach aligned with AWS and Azure migration best practices.
+
+  goals:
+    - Execute rapid assessment and strategic planning using agent-led activities
+    - Implement migration using dual-track waves: lift-and-shift and minimum viable refactor
+    - Apply GenAI tools and agent workflows across all stages
+    - Support secure-by-default, policy-aware architecture patterns on both Azure and AWS
+    - Equip clients to sustain modernisation with platform-agnostic IDPs and AI assistants
+    - Ensure continuous optimisation and management post-migration
+
+  core_principles:
+    - GenAI and agents are used across the lifecycle — not just in delivery
+    - Minimum viable refactor preferred over full rewrites unless mandated
+    - Tooling and artefacts are platform-neutral where possible
+    - Every proposal includes reusable components, fallback paths, and testing hooks
+    - Client platforms should be left in a state of self-sufficiency via internal tooling and AI literacy
+    - Align with AWS Migration Acceleration Program (MAP) and Azure Migration Program frameworks
+    - Leverage cloud-native services and managed platforms where possible
+
+  phases:
+    strategise_and_plan:
+      name: Strategise and Plan
+      description: >
+        Comprehensive assessment, strategy development, and detailed migration planning phase.
+        Combines discovery, business case development, and technical planning into a cohesive strategy.
+      workstreams:
+        - name: AI-Guided Discovery and Assessment
+          description: Automated discovery and assessment using cloud-native and AI-powered tools
+          implementation: >
+            Use AWS Application Discovery Service, Azure Migrate, or third-party tools combined with 
+            GenAI analysis to understand current state, dependencies, and migration complexity.
+            Generate automated assessment reports and recommendations.
+          
+        - name: Strategic Planning and Business Case
+          description: Develop migration strategy, business case, and success criteria
+          implementation: >
+            Use AI-assisted analysis to create compelling business cases, ROI projections, and 
+            strategic roadmaps. Leverage platform-specific calculators (AWS TCO, Azure Cost Calculator)
+            enhanced with GenAI insights.
+          
+        - name: Technical Architecture and Planning
+          description: Design target architecture and detailed migration plans
+          implementation: >
+            Generate secure-by-default architecture blueprints using IaC copilots.
+            Create detailed wave plans with dual-track approach (rehost vs refactor).
+            Establish governance, security, and compliance frameworks.
+          
+        - name: Capability and Team Enablement
+          description: Prepare teams and establish foundational capabilities
+          implementation: >
+            Deploy platform-agnostic IDPs and AI literacy programs.
+            Establish CI/CD pipelines, monitoring, and operational frameworks.
+            Train teams on cloud-native practices and AI-assisted development.
+
+    migrate_and_modernise:
+      name: Migrate and Modernise
+      description: >
+        Execute the migration using automated tools and AI-assisted modernisation.
+        Implements dual-track approach with continuous validation and optimisation.
+      workstreams:
+        - name: Automated Migration Execution
+          description: Execute lift-and-shift migrations using cloud-native tools
+          implementation: >
+            Use AWS Migration Hub, Azure Migrate, or CloudEndure for automated migration.
+            Implement infrastructure-as-code for consistent, repeatable deployments.
+            Ensure all migrations include proper tagging, monitoring, and security configurations.
+          
+        - name: AI-Assisted Modernisation
+          description: Apply intelligent refactoring and modernisation where beneficial
+          implementation: >
+            Use GitHub Copilot, Amazon Q Code Transformation, or Azure AI for code modernisation.
+            Target containerisation, microservices, and cloud-native patterns where appropriate.
+            Implement automated testing and validation throughout the process.
+          
+        - name: Data Migration and Synchronisation
+          description: Migrate and modernise data platforms with minimal downtime
+          implementation: >
+            Use AWS DMS, Azure Database Migration Service, or equivalent tools.
+            Implement real-time synchronisation and validation mechanisms.
+            Leverage AI for data quality assessment and transformation recommendations.
+          
+        - name: Validation and Cutover
+          description: Comprehensive testing and seamless production cutover
+          implementation: >
+            Implement automated testing pipelines with AI-assisted validation.
+            Use traffic replay, synthetic monitoring, and performance benchmarking.
+            Execute phased cutover with automated rollback capabilities.
+
+    manage_and_optimise:
+      name: Manage and Optimise
+      description: >
+        Establish ongoing management, optimisation, and continuous improvement capabilities.
+        Focus on cost optimisation, performance tuning, and operational excellence.
+      workstreams:
+        - name: Cloud Operations and Monitoring
+          description: Implement comprehensive monitoring and operational excellence
+          implementation: >
+            Deploy cloud-native monitoring using AWS CloudWatch, Azure Monitor, or multi-cloud solutions.
+            Implement AI-driven anomaly detection and automated remediation.
+            Establish SRE practices and operational runbooks.
+          
+        - name: Cost Optimisation and FinOps
+          description: Continuous cost monitoring and optimisation using AI insights
+          implementation: >
+            Implement AWS Cost Explorer, Azure Cost Management, or third-party FinOps tools.
+            Use AI-driven recommendations for rightsizing, reserved instances, and spot instances.
+            Establish cost governance and chargeback mechanisms.
+          
+        - name: Performance and Security Optimisation
+          description: Ongoing performance tuning and security enhancement
+          implementation: >
+            Use AI-powered performance analysis and recommendation engines.
+            Implement continuous security scanning and compliance monitoring.
+            Leverage cloud-native security services and automated remediation.
+          
+        - name: Innovation and Continuous Modernisation
+          description: Enable ongoing innovation and modernisation capabilities
+          implementation: >
+            Establish innovation labs and experimentation frameworks.
+            Implement AI-assisted development and deployment pipelines.
+            Create feedback loops for continuous improvement and modernisation.
+
+  red_flags:
+    - Big-bang migration approach without phased delivery
+    - Lack of automation and manual-heavy processes
+    - No GenAI or AI-assisted tooling mentioned
+    - Platform-specific solutions without portability considerations
+    - Missing fallback and rollback strategies
+    - No mention of team capability development
+    - Inadequate testing and validation approaches
+    - Poor cost optimization and FinOps practices
+    - Insufficient security and compliance considerations
+    - No continuous improvement or innovation framework
+
+  evaluation_criteria:
+    strategise_and_plan:
+      assessment_quality:
+        weight: 0.25
+        description: "Quality and comprehensiveness of discovery and assessment"
+        indicators:
+          - "Automated discovery tools utilised"
+          - "AI-enhanced analysis and insights"
+          - "Comprehensive dependency mapping"
+          - "Risk and complexity assessment"
+      
+      strategic_alignment:
+        weight: 0.25
+        description: "Business case and strategic alignment"
+        indicators:
+          - "Clear business drivers and outcomes"
+          - "ROI and cost-benefit analysis"
+          - "Stakeholder alignment and buy-in"
+          - "Success criteria definition"
+      
+      technical_planning:
+        weight: 0.25
+        description: "Technical architecture and migration planning"
+        indicators:
+          - "Secure-by-default architecture"
+          - "Dual-track migration approach"
+          - "IaC and automation strategy"
+          - "Governance and compliance framework"
+      
+      capability_readiness:
+        weight: 0.25
+        description: "Team and capability preparation"
+        indicators:
+          - "Skills assessment and training plan"
+          - "Tool and platform readiness"
+          - "Operational framework establishment"
+          - "Change management strategy"
+
+    migrate_and_modernise:
+      automation_utilisation:
+        weight: 0.3
+        description: "Use of automated migration and modernisation tools"
+        indicators:
+          - "Cloud-native migration tools"
+          - "AI-assisted code transformation"
+          - "Automated testing and validation"
+          - "Infrastructure-as-code implementation"
+      
+      modernisation_approach:
+        weight: 0.25
+        description: "Strategic approach to modernisation"
+        indicators:
+          - "Minimum viable refactor strategy"
+          - "Cloud-native pattern adoption"
+          - "Containerisation and microservices"
+          - "Data platform modernisation"
+      
+      risk_mitigation:
+        weight: 0.25
+        description: "Risk management and validation approach"
+        indicators:
+          - "Comprehensive testing strategy"
+          - "Rollback and contingency planning"
+          - "Phased migration approach"
+          - "Performance and security validation"
+      
+      delivery_excellence:
+        weight: 0.2
+        description: "Quality of delivery execution"
+        indicators:
+          - "Automated deployment pipelines"
+          - "Continuous integration and testing"
+          - "Performance monitoring and optimization"
+          - "Documentation and knowledge transfer"
+
+    manage_and_optimise:
+      operational_excellence:
+        weight: 0.3
+        description: "Quality of ongoing operations and monitoring"
+        indicators:
+          - "Comprehensive monitoring and alerting"
+          - "Automated incident response"
+          - "SRE practices and runbooks"
+          - "Performance optimization"
+      
+      cost_optimization:
+        weight: 0.25
+        description: "Cost management and FinOps practices"
+        indicators:
+          - "Cost monitoring and reporting"
+          - "Resource optimization strategies"
+          - "Reserved instance and spot usage"
+          - "Chargeback and governance"
+      
+      security_compliance:
+        weight: 0.25
+        description: "Security and compliance management"
+        indicators:
+          - "Continuous security monitoring"
+          - "Compliance automation"
+          - "Vulnerability management"
+          - "Access control and governance"
+      
+      innovation_enablement:
+        weight: 0.2
+        description: "Continuous improvement and innovation"
+        indicators:
+          - "Innovation labs and experimentation"
+          - "AI-assisted development"
+          - "Feedback loops and optimization"
+          - "Knowledge sharing and learning"
+
+scoring_rubric:
+  3: "Exceptional - Exceeds expectations with innovative AI-driven approaches and comprehensive implementation"
+  2: "Good - Meets expectations with solid implementation of required elements and some AI enhancement"
+  1: "Adequate - Basic implementation present but limited AI utilisation or missing some elements"
+  0: "Poor - Missing critical elements or no evidence of modern, AI-enhanced approaches"
+
+archetypes:
+  - legacy-dotnet-refactor
+  - oracle-unix-to-container
+  - windows-to-linux-modernisation
+  - monolith-to-microservice transformation
+  - container-to-managed-platform (e.g., ECS → AKS, Fargate → ARO)
+  - data-platform-modernisation
+  - hybrid-cloud-integration
+
+agentic_components:
+  - Proposal generation copilots (GitHub, Amazon Q, Microsoft 365 Copilot)
+  - Pattern classification and archetype tagging agents
+  - Migration planning orchestrators with dual-track support
+  - IaC copilots (Terraform and Bicep)
+  - Cost optimisation and FinOps agents
+  - Security and compliance monitoring bots
+  - Performance tuning and anomaly detection agents
+
+platforms:
+  - LLM/AI: AWS Bedrock, Amazon Q, GitHub Copilot, Microsoft 365 Copilot, Azure OpenAI
+  - Discovery: AWS Application Discovery Service, Azure Migrate, custom agent ingestion
+  - Migration: AWS Migration Hub, Azure Migrate, CloudEndure
+  - IaC: Terraform, Bicep, CloudFormation, ARM Templates
+  - Monitoring: AWS CloudWatch, Azure Monitor, OpenTelemetry
+  - Cost Management: AWS Cost Explorer, Azure Cost Management, third-party FinOps tools
+  - Security: AWS Security Hub, Azure Security Center, third-party SIEM/SOAR
+
+success_criteria:
+  - Strategic planning completed with comprehensive AI-enhanced assessment
+  - Migration executed using automated tools with minimal manual intervention
+  - All stages include AI/GenAI utilisation for enhanced outcomes
+  - Dual-track approach clearly defined and implemented
+  - Comprehensive operational framework established post-migration
+  - Cost optimisation and FinOps practices implemented
+  - Security and compliance continuously monitored and maintained
+  - Innovation and continuous modernisation capabilities enabled
+  - Platform-flexible approach supporting both Azure and AWS
+  - Client teams enabled for ongoing self-sufficiency
+

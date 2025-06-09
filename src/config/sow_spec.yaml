@@ -1,0 +1,84 @@
+sow_specification:
+  name: "Statement of Work Review Specification"
+  version: "1.0"
+  description: "Comprehensive evaluation criteria for Statement of Work documents"
+  
+  phases:
+    scope_definition:
+      name: "Scope Definition"
+      description: "Evaluate clarity and completeness of project scope"
+      criteria:
+        scope_clarity:
+          name: "Scope Clarity"
+          description: "Clear definition of what is included and excluded"
+          weight: 0.3
+        deliverables_definition:
+          name: "Deliverables Definition"
+          description: "Specific, measurable deliverables with acceptance criteria"
+          weight: 0.3
+        boundaries:
+          name: "Project Boundaries"
+          description: "Clear boundaries and constraints"
+          weight: 0.2
+        success_criteria:
+          name: "Success Criteria"
+          description: "Measurable success criteria defined"
+          weight: 0.2
+    
+    dependencies_analysis:
+      name: "Dependencies Analysis"
+      description: "Evaluate identification and management of dependencies"
+      criteria:
+        internal_dependencies:
+          name: "Internal Dependencies"
+          description: "Dependencies on internal teams/resources identified"
+          weight: 0.3
+        external_dependencies:
+          name: "External Dependencies"
+          description: "Dependencies on external parties/systems identified"
+          weight: 0.3
+        critical_path:
+          name: "Critical Path Analysis"
+          description: "Critical dependencies that could impact timeline"
+          weight: 0.2
+        mitigation_strategies:
+          name: "Mitigation Strategies"
+          description: "Strategies to manage dependency risks"
+          weight: 0.2
+    
+    assumptions_review:
+      name: "Assumptions Review"
+      description: "Evaluate documentation and validation of assumptions"
+      criteria:
+        assumption_documentation:
+          name: "Assumption Documentation"
+          description: "All key assumptions clearly documented"
+          weight: 0.3
+        assumption_validation:
+          name: "Assumption Validation"
+          description: "Process for validating assumptions"
+          weight: 0.3
+        risk_assessment:
+          name: "Risk Assessment"
+          description: "Risks associated with assumptions identified"
+          weight: 0.2
+        contingency_planning:
+          name: "Contingency Planning"
+          description: "Plans for when assumptions prove incorrect"
+          weight: 0.2
+
+  evaluation_framework:
+    scoring:
+      scale: "0-3"
+      levels:
+        0: "Not addressed or completely missing"
+        1: "Partially addressed with significant gaps"
+        2: "Adequately addressed with minor gaps"
+        3: "Fully addressed and well-documented"
+    
+    quality_indicators:
+      - "Specific and measurable language"
+      - "Clear accountability assignments"
+      - "Realistic timelines and milestones"
+      - "Comprehensive risk identification"
+      - "Stakeholder alignment evidence" 
