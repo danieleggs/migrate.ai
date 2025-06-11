@@ -1,0 +1,149 @@
+{
+  "client_name": "Acme Corporation",
+  "project_name": "Cloud Migration Initiative 2024",
+  "business_context": "Acme Corporation is embarking on a comprehensive digital transformation journey to modernize their legacy infrastructure and applications. The primary drivers include cost optimization, improved scalability, enhanced security, and faster time-to-market for new features. The organization aims to reduce operational overhead by 30% and improve application performance by 50% through cloud adoption.",
+  "contact_info": {
+    "primary_contact": "John Smith",
+    "email": "john.smith@acme.com",
+    "phone": "+1-555-0123",
+    "department": "IT Infrastructure"
+  },
+  "applications": [
+    {
+      "name": "Customer Portal",
+      "description": "Web-based customer service portal allowing customers to view accounts, make payments, and submit support requests",
+      "technology_stack": ["Java 8", "Spring Boot", "MySQL 5.7", "Apache Tomcat", "Angular 10"],
+      "dependencies": ["User Authentication Service", "Payment Gateway", "Notification Service"],
+      "criticality": "high",
+      "current_environment": "On-premises data center",
+      "data_classification": "confidential",
+      "compliance_requirements": ["PCI-DSS", "GDPR"],
+      "estimated_users": 15000,
+      "performance_requirements": "99.9% uptime, <2 second response time"
+    },
+    {
+      "name": "Inventory Management System",
+      "description": "Internal system for tracking product inventory, orders, and supply chain management",
+      "technology_stack": [".NET Framework 4.8", "SQL Server 2016", "WPF", "Crystal Reports"],
+      "dependencies": ["ERP System", "Supplier APIs"],
+      "criticality": "critical",
+      "current_environment": "On-premises data center",
+      "data_classification": "internal",
+      "compliance_requirements": ["SOX"],
+      "estimated_users": 500,
+      "performance_requirements": "99.95% uptime, real-time inventory updates"
+    },
+    {
+      "name": "Marketing Analytics Platform",
+      "description": "Data analytics platform for marketing campaign performance and customer insights",
+      "technology_stack": ["Python 3.8", "Django", "PostgreSQL", "Redis", "Elasticsearch"],
+      "dependencies": ["Customer Data Platform", "External Marketing APIs"],
+      "criticality": "medium",
+      "current_environment": "On-premises data center",
+      "data_classification": "internal",
+      "compliance_requirements": ["GDPR"],
+      "estimated_users": 50,
+      "performance_requirements": "99% uptime, batch processing within 4 hours"
+    },
+    {
+      "name": "Legacy Reporting System",
+      "description": "Legacy system for generating financial and operational reports",
+      "technology_stack": ["COBOL", "DB2", "CICS", "JCL"],
+      "dependencies": ["Mainframe Database", "Financial Systems"],
+      "criticality": "medium",
+      "current_environment": "Mainframe",
+      "data_classification": "confidential",
+      "compliance_requirements": ["SOX", "Financial Regulations"],
+      "estimated_users": 25,
+      "performance_requirements": "Monthly batch processing, 99% accuracy"
+    },
+    {
+      "name": "Employee Self-Service Portal",
+      "description": "HR portal for employee information, benefits, and time tracking",
+      "technology_stack": ["PHP 7.4", "Laravel", "MySQL 8.0", "Vue.js"],
+      "dependencies": ["Active Directory", "Payroll System"],
+      "criticality": "low",
+      "current_environment": "On-premises data center",
+      "data_classification": "internal",
+      "compliance_requirements": ["HIPAA"],
+      "estimated_users": 2000,
+      "performance_requirements": "99% uptime during business hours"
+    },
+    {
+      "name": "API Gateway",
+      "description": "Central API gateway for managing and securing API access across applications",
+      "technology_stack": ["Node.js", "Express", "MongoDB", "Docker"],
+      "dependencies": ["All backend services"],
+      "criticality": "high",
+      "current_environment": "On-premises data center",
+      "data_classification": "internal",
+      "compliance_requirements": ["Security Standards"],
+      "estimated_users": 100000,
+      "performance_requirements": "99.99% uptime, <100ms latency"
+    }
+  ],
+  "infrastructure": {
+    "current_hosting": "On-premises data center with some mainframe systems",
+    "network_architecture": "Traditional three-tier architecture with DMZ",
+    "security_controls": ["Firewalls", "IDS/IPS", "VPN", "Active Directory"],
+    "backup_strategy": "Daily incremental, weekly full backups",
+    "disaster_recovery": "Secondary data center with 4-hour RTO"
+  },
+  "business_requirements": {
+    "target_cloud_providers": ["AWS", "Azure"],
+    "budget_range": "$500K - $1M",
+    "timeline": "12-18 months",
+    "key_objectives": [
+      "Reduce operational costs by 30%",
+      "Improve application performance by 50%",
+      "Enhance security posture",
+      "Enable faster feature deployment",
+      "Improve disaster recovery capabilities"
+    ],
+    "constraints": [
+      "Minimal downtime during migration",
+      "Maintain compliance requirements",
+      "Preserve data integrity",
+      "Limited budget for application refactoring"
+    ]
+  },
+  "stakeholders": [
+    {
+      "name": "Sarah Johnson",
+      "role": "CTO",
+      "department": "Technology",
+      "influence": "high",
+      "concerns": ["Technical feasibility", "Security", "Performance"]
+    },
+    {
+      "name": "Michael Brown",
+      "role": "CFO",
+      "department": "Finance",
+      "influence": "high",
+      "concerns": ["Cost optimization", "ROI", "Budget adherence"]
+    },
+    {
+      "name": "Lisa Davis",
+      "role": "CISO",
+      "department": "Security",
+      "influence": "medium",
+      "concerns": ["Security compliance", "Data protection", "Risk management"]
+    }
+  ],
+  "current_challenges": [
+    "Aging infrastructure requiring frequent maintenance",
+    "Limited scalability during peak usage periods",
+    "High operational costs for hardware and maintenance",
+    "Difficulty deploying new features quickly",
+    "Security vulnerabilities in legacy systems",
+    "Limited disaster recovery capabilities"
+  ],
+  "success_criteria": [
+    "30% reduction in total cost of ownership",
+    "50% improvement in application response times",
+    "99.9% uptime for critical applications",
+    "Successful migration with <4 hours total downtime",
+    "Maintained compliance with all regulatory requirements",
+    "Improved security posture with cloud-native controls"
+  ]
+} 

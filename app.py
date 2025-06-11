@@ -12,6 +12,7 @@ from src.graph.evaluation_graph import EvaluationOrchestrator
 from src.models.evaluation import MigrationPhase
 from src.models.evaluation_types import EvaluationType, EVALUATION_CONFIGS
 from src.agents.sow_evaluator import evaluate_sow_document
+from src.graph.proposal_generation_graph import ProposalGenerationOrchestrator
 
 # Load environment variables
 load_dotenv()
@@ -137,6 +138,16 @@ st.markdown("""
 def main():
     """Main application function."""
     
+    # Initialize session state for caching evaluation results
+    if 'evaluation_result' not in st.session_state:
+        st.session_state.evaluation_result = None
+    if 'evaluation_metadata' not in st.session_state:
+        st.session_state.evaluation_metadata = None
+    if 'last_file_hash' not in st.session_state:
+        st.session_state.last_file_hash = None
+    if 'last_eval_type' not in st.session_state:
+        st.session_state.last_eval_type = None
+    
     # Header
     st.markdown('<h1 class="main-header">Pre-Sales Document Evaluator</h1>', unsafe_allow_html=True)
     
@@ -146,6 +157,7 @@ def main():
     Choose from different evaluation types to assess your documents:
     - **Migration Proposals**: Full evaluation against Modernize.AI specification
     - **Statement of Work**: Framework for SOW evaluation (logic to be implemented)
+    - **Migration Proposal Generator**: Generate comprehensive migration proposals from discovery data
     """)
     
     # Sidebar
@@ -206,6 +218,16 @@ def main():
             show_detailed_analysis = st.checkbox("Show detailed analysis", value=True)
             show_phase_breakdown = st.checkbox("Show phase breakdown", value=True)
             show_recommendations = st.checkbox("Show recommendations", value=True)
+            
+            st.markdown("---")
+            
+            # Add re-run button
+            if st.button("🔄 Re-run Evaluation", help="Force re-evaluation of the document"):
+                # Clear cache to force re-evaluation
+                st.session_state.evaluation_result = None
+                st.session_state.last_file_hash = None
+                st.session_state.last_eval_type = None
+                st.rerun()
         else:
             show_detailed_analysis = True
             show_phase_breakdown = True
@@ -213,17 +235,75 @@ def main():
     
     # Main content area - only show evaluation if file is uploaded
     if uploaded_file is not None:
-        run_evaluation(uploaded_file, selected_eval_type, selected_config, show_detailed_analysis, show_phase_breakdown, show_recommendations)
+        run_evaluation_with_cache(uploaded_file, selected_eval_type, selected_config, show_detailed_analysis, show_phase_breakdown, show_recommendations)
     else:
+        # Clear cached results when no file is uploaded
+        if st.session_state.evaluation_result is not None:
+            st.session_state.evaluation_result = None
+            st.session_state.evaluation_metadata = None
+            st.session_state.last_file_hash = None
+            st.session_state.last_eval_type = None
+        
         # Blank right pane with just a simple message
         st.markdown("### Upload a document to begin evaluation")
         st.markdown("Select an evaluation type from the sidebar and upload your document to get started.")
 
 
-def run_evaluation(uploaded_file, eval_type, config, show_detailed_analysis, show_phase_breakdown, show_recommendations):
-    """Run the evaluation process based on the selected evaluation type."""
+def run_evaluation_with_cache(uploaded_file, eval_type, config, show_detailed_analysis, show_phase_breakdown, show_recommendations):
+    """Run evaluation with caching to avoid re-running on display option changes."""
     
-    st.subheader(f"{config.name}: {uploaded_file.name}")
+    # Create a hash of the file content to detect changes
+    import hashlib
+    file_content = uploaded_file.getvalue()
+    file_hash = hashlib.md5(file_content).hexdigest()
+    
+    # Check if we need to re-run the evaluation
+    need_evaluation = (
+        st.session_state.evaluation_result is None or
+        st.session_state.last_file_hash != file_hash or
+        st.session_state.last_eval_type != eval_type
+    )
+    
+    if need_evaluation:
+        # Show that we're running a new evaluation
+        st.subheader(f"{config.name}: {uploaded_file.name}")
+        
+        # Run the actual evaluation
+        result = run_evaluation_core(uploaded_file, eval_type, config)
+        
+        # Cache the results
+        if result and result.get("success"):
+            st.session_state.evaluation_result = result
+            st.session_state.last_file_hash = file_hash
+            st.session_state.last_eval_type = eval_type
+        else:
+            # Don't cache failed results
+            st.session_state.evaluation_result = None
+            if result:
+                st.error(f"Evaluation failed: {result.get('error', 'Unknown error')}")
+                if result.get("partial_results"):
+                    st.subheader("Partial Results")
+                    st.json(result["partial_results"])
+            return
+    else:
+        # Using cached results - show a subtle indicator
+        st.subheader(f"{config.name}: {uploaded_file.name}")
+        st.caption("📋 Using cached evaluation results (change file or evaluation type to re-run)")
+    
+    # Display results (either fresh or cached)
+    if st.session_state.evaluation_result:
+        result = st.session_state.evaluation_result
+        
+        if eval_type == EvaluationType.MIGRATION_PROPOSAL:
+            display_evaluation_results(result, show_detailed_analysis, show_phase_breakdown, show_recommendations)
+        elif eval_type == EvaluationType.STATEMENT_OF_WORK:
+            display_sow_results(result, show_detailed_analysis, show_phase_breakdown, show_recommendations)
+        elif eval_type == EvaluationType.PROPOSAL_GENERATOR:
+            display_proposal_generator_results(result, show_detailed_analysis, show_phase_breakdown, show_recommendations)
+
+
+def run_evaluation_core(uploaded_file, eval_type, config):
+    """Core evaluation logic without caching."""
     
     # Create progress bar
     progress_bar = st.progress(0)
@@ -235,7 +315,7 @@ def run_evaluation(uploaded_file, eval_type, config, show_detailed_analysis, sho
         
         if not file_content:
             st.error("No file content detected!")
-            return
+            return None
         
         # Route to appropriate evaluator based on type
         if eval_type == EvaluationType.MIGRATION_PROPOSAL:
@@ -253,14 +333,7 @@ def run_evaluation(uploaded_file, eval_type, config, show_detailed_analysis, sho
             progress_bar.progress(100)
             status_text.text("Migration evaluation complete!")
             
-            # Display results
-            if result["success"]:
-                display_evaluation_results(result, show_detailed_analysis, show_phase_breakdown, show_recommendations)
-            else:
-                st.error(f"Evaluation failed: {result['error']}")
-                if result.get("partial_results"):
-                    st.subheader("Partial Results")
-                    st.json(result["partial_results"])
+            return result
         
         elif eval_type == EvaluationType.STATEMENT_OF_WORK:
             # Use placeholder SOW evaluator
@@ -284,13 +357,57 @@ def run_evaluation(uploaded_file, eval_type, config, show_detailed_analysis, sho
             progress_bar.progress(100)
             status_text.text("SOW framework evaluation complete!")
             
-            # Display SOW-specific results
-            display_sow_results(result, show_detailed_analysis, show_phase_breakdown, show_recommendations)
+            # Wrap SOW result in success format
+            return {"success": True, "evaluation_result": result}
+        
+        elif eval_type == EvaluationType.PROPOSAL_GENERATOR:
+            # Use proposal generator
+            status_text.text("Initializing proposal generation...")
+            progress_bar.progress(10)
+            
+            # Parse document content as discovery data
+            try:
+                from src.utils.document_parser import DocumentParser
+                parsed_doc = DocumentParser.parse_document(file_content, uploaded_file.name)
+                content = parsed_doc.content
+            except Exception:
+                # Fallback to basic content extraction
+                content = str(file_content, 'utf-8', errors='ignore')
+            
+            status_text.text("Analyzing discovery data...")
+            progress_bar.progress(30)
+            
+            # Create discovery input data
+            discovery_data = {
+                "client_name": "Client",  # Default, can be extracted from filename
+                "project_name": f"Migration Project - {uploaded_file.name}",
+                "source_type": "text",
+                "raw_data": content,
+                "business_context": "Cloud migration and modernization initiative"
+            }
+            
+            status_text.text("Generating migration proposal...")
+            progress_bar.progress(50)
+            
+            # Initialize proposal generator
+            proposal_orchestrator = ProposalGenerationOrchestrator()
+            
+            status_text.text("Running proposal generation workflow...")
+            progress_bar.progress(70)
+            
+            # Generate proposal
+            result = proposal_orchestrator.generate_proposal(discovery_data)
+            
+            progress_bar.progress(100)
+            status_text.text("Proposal generation complete!")
+            
+            return result
                 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
         import traceback
         st.code(traceback.format_exc())
+        return {"success": False, "error": str(e)}
     finally:
         progress_bar.empty()
         status_text.empty()
@@ -704,6 +821,242 @@ PHASE BREAKDOWN:
             summary += f"   {rec.get('description', '')}\n"
     
     return summary
+
+
+def display_proposal_generator_results(result, show_detailed_analysis, show_phase_breakdown, show_recommendations):
+    """Display proposal generator results."""
+    
+    if not result.get("success"):
+        st.error("Proposal generation failed!")
+        if result.get("errors"):
+            st.error("Errors: " + ", ".join(result["errors"]))
+        if result.get("warnings"):
+            st.warning("Warnings: " + ", ".join(result["warnings"]))
+        return
+    
+    proposal_state = result.get("proposal_state")
+    if not proposal_state:
+        st.error("No proposal state found in results")
+        return
+    
+    # Overall summary
+    st.subheader("Proposal Generation Summary")
+    
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        st.metric("Applications", len(proposal_state.applications) if proposal_state.applications else 0)
+    
+    with col2:
+        st.metric("Migration Waves", len(proposal_state.wave_groups) if proposal_state.wave_groups else 0)
+    
+    with col3:
+        total_sprints = sum(est.total_sprints for est in proposal_state.sprint_estimates) if proposal_state.sprint_estimates else 0
+        st.metric("Total Sprints", total_sprints)
+    
+    with col4:
+        total_weeks = total_sprints * 2  # 2-week sprints
+        st.metric("Timeline (weeks)", total_weeks)
+    
+    with col5:
+        feedback_count = len(result.get("feedback_loops", []))
+        st.metric("Optimizations", feedback_count, help="Number of feedback loops triggered for optimization")
+    
+    # Show feedback loop information if any occurred
+    if result.get("feedback_loops"):
+        st.info(f"🔄 **Intelligent Optimization Applied**: {result.get('iterations', 1)} iterations with {len(result['feedback_loops'])} feedback loops")
+        
+        with st.expander("View Optimization Details"):
+            st.markdown("**Feedback Loops Triggered:**")
+            for loop in result["feedback_loops"]:
+                if "wave_replan" in loop:
+                    st.markdown("🌊 **Wave Replanning**: Modernization bias detected refactor opportunities, replanned migration waves")
+                elif "scope_update" in loop:
+                    st.markdown("📋 **Scope Update**: Complex architecture patterns detected, updated project scope")
+                elif "strategy_reclassification" in loop:
+                    st.markdown("🎯 **Strategy Optimization**: High effort detected, reclassified to simpler migration strategies")
+                else:
+                    st.markdown(f"🔄 **{loop.replace('_', ' ').title()}**")
+            
+            st.markdown(f"**Final Version**: {result.get('iterations', 1)} (optimized through recursive analysis)")
+    else:
+        st.success("✅ **Optimal Plan Generated**: No optimization loops needed - plan was optimal on first pass")
+    
+    # Applications Analysis
+    if show_detailed_analysis and proposal_state.applications:
+        st.subheader("Application Portfolio Analysis")
+        
+        # Create applications dataframe for visualization
+        app_data = []
+        for app in proposal_state.applications:
+            strategy = proposal_state.migration_strategies.get(app.name, "Unknown") if proposal_state.migration_strategies else "Unknown"
+            app_data.append({
+                "Application": app.name,
+                "Technology": ", ".join(app.technology_stack[:3]) + ("..." if len(app.technology_stack) > 3 else ""),
+                "Criticality": app.criticality.value if hasattr(app.criticality, 'value') else str(app.criticality),
+                "Strategy": strategy.value if hasattr(strategy, 'value') else str(strategy),
+                "Users": app.estimated_users or 0
+            })
+        
+        df = pd.DataFrame(app_data)
+        st.dataframe(df, use_container_width=True)
+        
+        # Strategy distribution chart
+        if proposal_state.migration_strategies:
+            strategy_counts = {}
+            for strategy in proposal_state.migration_strategies.values():
+                strategy_name = strategy.value if hasattr(strategy, 'value') else str(strategy)
+                strategy_counts[strategy_name] = strategy_counts.get(strategy_name, 0) + 1
+            
+            fig = px.pie(
+                values=list(strategy_counts.values()),
+                names=list(strategy_counts.keys()),
+                title="Migration Strategy Distribution"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # Wave Planning
+    if show_phase_breakdown and proposal_state.wave_groups:
+        st.subheader("Migration Wave Planning")
+        
+        for wave in proposal_state.wave_groups:
+            with st.expander(f"Wave {wave.wave_number}: {wave.name}"):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown(f"**Strategy:** {wave.strategy}")
+                    st.markdown(f"**Duration:** {wave.estimated_duration_weeks} weeks")
+                    st.markdown(f"**Risk Level:** {wave.risk_level.value if hasattr(wave.risk_level, 'value') else str(wave.risk_level)}")
+                
+                with col2:
+                    st.markdown("**Applications:**")
+                    for app_name in wave.applications:
+                        st.markdown(f"• {app_name}")
+                
+                if wave.prerequisites:
+                    st.markdown("**Prerequisites:**")
+                    for prereq in wave.prerequisites:
+                        st.markdown(f"• {prereq}")
+    
+    # Architecture Recommendations
+    if show_recommendations and proposal_state.architecture_recommendations:
+        st.subheader("Architecture Recommendations")
+        
+        for rec in proposal_state.architecture_recommendations:
+            with st.expander(f"{rec.cloud_provider.value.upper()} Architecture"):
+                st.markdown("**Recommended Services:**")
+                for service_type, service_name in rec.services.items():
+                    st.markdown(f"• **{service_type.title()}:** {service_name}")
+                
+                if rec.patterns:
+                    st.markdown("**Architecture Patterns:**")
+                    for pattern in rec.patterns:
+                        st.markdown(f"• {pattern}")
+                
+                if rec.best_practices:
+                    st.markdown("**Best Practices:**")
+                    for practice in rec.best_practices:
+                        st.markdown(f"• {practice}")
+    
+    # GenAI Tools
+    if proposal_state.genai_tool_plans:
+        st.subheader("GenAI Tool Integration")
+        
+        for plan in proposal_state.genai_tool_plans:
+            with st.expander(f"{plan.tool.value.replace('_', ' ').title()}"):
+                st.markdown("**Use Cases:**")
+                for use_case in plan.use_cases:
+                    st.markdown(f"• {use_case}")
+                
+                st.markdown("**Expected Benefits:**")
+                for benefit in plan.expected_benefits:
+                    st.markdown(f"• {benefit}")
+                
+                st.markdown(f"**Timeline:** {plan.implementation_timeline}")
+    
+    # Generated Proposal Content
+    if proposal_state.markdown_output:
+        st.subheader("Generated Proposal")
+        
+        # Show preview
+        with st.expander("Preview Proposal Content"):
+            st.markdown(proposal_state.markdown_output[:2000] + "..." if len(proposal_state.markdown_output) > 2000 else proposal_state.markdown_output)
+    
+    # Export Options
+    st.subheader("Export Proposal")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("Export as Markdown"):
+            if proposal_state.markdown_output:
+                st.download_button(
+                    label="Download Markdown",
+                    data=proposal_state.markdown_output,
+                    file_name=f"migration_proposal_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
+                    mime="text/markdown"
+                )
+            else:
+                st.error("No markdown content available")
+    
+    with col2:
+        if st.button("Export as YAML"):
+            yaml_content = create_proposal_generator_yaml_export(result)
+            st.download_button(
+                label="Download YAML",
+                data=yaml_content,
+                file_name=f"proposal_generator_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.yaml",
+                mime="text/yaml"
+            )
+    
+    with col3:
+        if st.button("Export as JSON"):
+            import json
+            # Convert proposal state to dict for JSON serialization
+            proposal_dict = {
+                "success": result.get("success"),
+                "applications": [
+                    {
+                        "name": app.name,
+                        "description": app.description,
+                        "technology_stack": app.technology_stack,
+                        "criticality": app.criticality.value if hasattr(app.criticality, 'value') else str(app.criticality)
+                    } for app in proposal_state.applications
+                ] if proposal_state.applications else [],
+                "wave_groups": [
+                    {
+                        "wave_number": wave.wave_number,
+                        "name": wave.name,
+                        "applications": wave.applications,
+                        "strategy": wave.strategy,
+                        "duration_weeks": wave.estimated_duration_weeks
+                    } for wave in proposal_state.wave_groups
+                ] if proposal_state.wave_groups else [],
+                "feedback_loops": result.get("feedback_loops", []),
+                "iterations": result.get("iterations", 1),
+                "optimization_applied": len(result.get("feedback_loops", [])) > 0
+            }
+            
+            json_content = json.dumps(proposal_dict, indent=2)
+            st.download_button(
+                label="Download JSON",
+                data=json_content,
+                file_name=f"proposal_generator_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json"
+            )
+
+
+def create_proposal_generator_yaml_export(result):
+    """Create YAML export for proposal generator results."""
+    export_data = {
+        'proposal_generator_report': {
+            'timestamp': datetime.now().isoformat(),
+            'title': result.get('title', 'Untitled Proposal'),
+            'description': result.get('description', 'No description provided'),
+            'content': result.get('content', 'No proposal content provided')
+        }
+    }
+    return yaml.dump(export_data, default_flow_style=False, sort_keys=False)
 
 
 if __name__ == "__main__":

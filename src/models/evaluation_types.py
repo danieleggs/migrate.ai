@@ -7,6 +7,7 @@ class EvaluationType(Enum):
     """Different types of document evaluations available."""
     MIGRATION_PROPOSAL = "migration_proposal"
     STATEMENT_OF_WORK = "statement_of_work"
+    PROPOSAL_GENERATOR = "proposal_generator"
 
 
 class EvaluationConfig(BaseModel):
@@ -48,6 +49,21 @@ EVALUATION_CONFIGS: Dict[EvaluationType, EvaluationConfig] = {
             "Assumption documentation and validation",
             "Risk assessment coverage",
             "Deliverable specifications"
+        ]
+    ),
+    
+    EvaluationType.PROPOSAL_GENERATOR: EvaluationConfig(
+        name="Migration Proposal Generator",
+        description="Generate comprehensive migration proposals from discovery data using Modernize.AI methodology",
+        icon="",
+        spec_file="",  # Not needed for generator
+        phases=["discovery_analysis", "wave_planning", "strategy_classification", "proposal_generation"],
+        evaluation_criteria=[
+            "Discovery data analysis and application classification",
+            "Wave-based migration planning with dual-track methodology", 
+            "6 R's strategy classification with modernization bias",
+            "Architecture recommendations and GenAI tool planning",
+            "Sprint estimation and comprehensive proposal generation"
         ]
     )
 } 
