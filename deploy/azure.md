@@ -10,73 +10,67 @@
 
 ### Steps
 
-1. **Login to Azure**:
-   ```bash
-   az login
-   ```
+#### 1. Login to Azure
+```bash
+az login
+```
 
-2. **Create Resource Group**:
-   ```bash
-   az group create --name pre-sales-evaluator-rg --location eastus
-   ```
+#### 2. Create Resource Group
+```bash
+az group create --name pre-sales-evaluator-rg --location uksouth
+```
 
-3. **Build and push to Azure Container Registry**:
-   ```bash
-   # Create ACR
-   az acr create --resource-group pre-sales-evaluator-rg --name presalesevaluator --sku Basic
-   
-   # Login to ACR
-   az acr login --name presalesevaluator
-   
-   # Build and push
-   docker build -t pre-sales-evaluator .
-   docker tag pre-sales-evaluator presalesevaluator.azurecr.io/pre-sales-evaluator:latest
-   docker push presalesevaluator.azurecr.io/pre-sales-evaluator:latest
-   ```
+#### 3. Build and Push to Azure Container Registry
+```bash
+# Create ACR
+az acr create --resource-group pre-sales-evaluator-rg --name presalesevaluatoracr --sku Basic
 
-4. **Deploy Container Instance**:
-   ```bash
-   az container create \
-     --resource-group pre-sales-evaluator-rg \
-     --name pre-sales-evaluator \
-     --image presalesevaluator.azurecr.io/pre-sales-evaluator:latest \
-     --registry-login-server presalesevaluator.azurecr.io \
-     --registry-username presalesevaluator \
-     --registry-password $(az acr credential show --name presalesevaluator --query "passwords[0].value" -o tsv) \
-     --dns-name-label pre-sales-evaluator-unique \
-     --ports 8501 \
-     --environment-variables OPENAI_API_KEY="your-openai-api-key"
-   ```
+# Login to ACR
+az acr login --name presalesevaluatoracr
 
-5. **Access your app**:
-   - Your app will be available at: `http://pre-sales-evaluator-unique.eastus.azurecontainer.io:8501`
+# Build and push
+docker build -t presalesevaluatoracr.azurecr.io/pre-sales-evaluator:latest .
+docker push presalesevaluatoracr.azurecr.io/pre-sales-evaluator:latest
+```
 
-## Option 2: Azure App Service
+#### 4. Deploy Container Instance
+```bash
+az container create \
+  --resource-group pre-sales-evaluator-rg \
+  --name pre-sales-evaluator \
+  --image presalesevaluatoracr.azurecr.io/pre-sales-evaluator:latest \
+  --registry-login-server presalesevaluatoracr.azurecr.io \
+  --registry-username presalesevaluatoracr \
+  --registry-password $(az acr credential show --name presalesevaluatoracr --query "passwords[0].value" -o tsv) \
+  --dns-name-label pre-sales-evaluator-unique \
+  --ports 8501 \
+  --environment-variables OPENAI_API_KEY=your_openai_api_key_here \
+  --cpu 1 \
+  --memory 2
+```
+
+#### 5. Get Public URL
+```bash
+az container show --resource-group pre-sales-evaluator-rg --name pre-sales-evaluator --query ipAddress.fqdn
+```
+
+## Option 2: Azure Container Apps
+
+For more advanced scenarios with auto-scaling and traffic splitting.
 
 ### Steps
+1. **Create Container Apps Environment**
+2. **Deploy Container App**
+3. **Configure custom domains and SSL**
+4. **Set up monitoring and logging**
 
-1. **Create App Service Plan**:
-   ```bash
-   az appservice plan create --name pre-sales-evaluator-plan --resource-group pre-sales-evaluator-rg --sku B1 --is-linux
-   ```
+## Option 3: Azure App Service
 
-2. **Create Web App**:
-   ```bash
-   az webapp create --resource-group pre-sales-evaluator-rg --plan pre-sales-evaluator-plan --name pre-sales-evaluator-app --deployment-container-image-name presalesevaluator.azurecr.io/pre-sales-evaluator:latest
-   ```
-
-3. **Configure Environment Variables**:
-   ```bash
-   az webapp config appsettings set --resource-group pre-sales-evaluator-rg --name pre-sales-evaluator-app --settings OPENAI_API_KEY="your-openai-api-key"
-   ```
-
-## Option 3: Azure Kubernetes Service (AKS)
-
-For high-scale production deployments with auto-scaling and load balancing.
+For traditional web app deployment with built-in CI/CD.
 
 ## Benefits
-- ✅ Enterprise-grade security
-- ✅ Integration with Azure services
-- ✅ Auto-scaling capabilities
-- ✅ Custom domains and SSL
-- ✅ Built-in monitoring and logging 
+- Enterprise-grade security
+- Integration with Azure services
+- Auto-scaling capabilities
+- Custom domains and SSL
+- Built-in monitoring and logging 

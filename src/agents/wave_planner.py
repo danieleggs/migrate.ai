@@ -25,7 +25,7 @@ def plan_migration_waves(state: ProposalState) -> Dict[str, Any]:
         state: Current proposal generation state
         
     Returns:
-        Dictionary with migration wave planning data
+        Dictionary with migration wave plan
     """
     try:
         classified_workloads = state.classified_workloads
@@ -34,7 +34,15 @@ def plan_migration_waves(state: ProposalState) -> Dict[str, Any]:
             return {"errors": ["No classified workloads available for wave planning"]}
         
         # Generate wave plan using LLM
-        wave_plan = _generate_wave_plan(classified_workloads)
+        try:
+            wave_plan = _generate_wave_plan(classified_workloads)
+        except Exception as e:
+            # If LLM fails, use fallback planning
+            if "rate_limit" in str(e).lower() or "429" in str(e):
+                print("Rate limit hit, using fallback wave planning")
+                wave_plan = _create_fallback_wave_plan(classified_workloads)
+            else:
+                raise e
         
         return {
             "migration_waves": wave_plan
@@ -49,52 +57,62 @@ def plan_migration_waves(state: ProposalState) -> Dict[str, Any]:
 def _generate_wave_plan(classified_workloads: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Generate migration wave plan using LLM."""
     prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are an expert cloud migration strategist specializing in wave planning using dual-track methodology.
+        ("system", """You are an expert cloud migration strategist specializing in dual-track agile delivery methodology.
 
-Analyze the classified workloads and create a migration wave plan that follows these principles:
+Analyze the classified workloads and create a migration wave plan using the dual-track approach:
 
-**Dual-Track Approach:**
-- **Track 1 (Foundation)**: Infrastructure, shared services, and foundational components
-- **Track 2 (Applications)**: Business applications that depend on Track 1 components
+**Dual-Track Agile Delivery Model:**
+A disciplined agile delivery model that runs two parallel, inter-locking tracks:
 
-**Wave Planning Criteria:**
-1. **Dependencies**: Applications with fewer dependencies go first
-2. **Complexity**: Start with simpler applications to build confidence
-3. **Business Criticality**: Balance risk - not all critical apps in one wave
-4. **Resource Capacity**: Distribute effort evenly across waves
-5. **Learning Curve**: Early wins to build team expertise
+- **Discovery Track**: Runs one sprint ahead, investigating user needs and technical feasibility, refining and sizing backlog items, prototyping solutions, and validating them with stakeholders
+- **Delivery Track**: Works from the discovery-ready backlog to build, test and release migration increments in short, time-boxed sprints, including continuous-service-improvement items
 
-**Wave Structure:**
-- Wave 0: Proof of Concept (1-2 simple applications)
-- Wave 1-N: Production migrations (3-5 applications per wave)
+**Key Principles:**
+1. **Validated-then-built workflow**: Discovery Track creates validated backlog for Delivery Track
+2. **Continuous stakeholder collaboration**: Embedded throughout both tracks
+3. **Reduced rework**: Validation before building minimizes rework
+4. **Rapid incremental delivery**: Time-boxed sprints enable fast delivery of migrated workloads
+5. **Inter-locking tracks**: Discovery stays one sprint ahead of Delivery
+
+**Wave Planning Approach:**
+- Start with discovery-ready workloads for immediate Delivery Track
+- Run Discovery Track for complex workloads requiring investigation
+- Maintain continuous flow between tracks
+- Include continuous service improvement items
+- Use 2-week sprint cycles for both tracks
 
 For each wave, provide:
-- Applications included
-- Track assignment (Foundation/Application)
-- Dependencies satisfied
-- Estimated timeline
-- Risk level
-- Success criteria
+- Track type (Discovery or Delivery)
+- Sprint count and duration
+- Stakeholder collaboration approach
+- Success criteria focused on validation or delivery
 
 Return JSON format:
-{
-  "methodology": "Dual-Track Migration",
+{{
+  "methodology": "Dual-Track Agile Delivery",
+  "methodology_description": "Discovery and Delivery tracks running in parallel",
   "total_waves": number,
+  "total_sprints": number,
   "estimated_duration_months": number,
+  "key_principles": ["principle1", "principle2"],
   "waves": [
-    {
-      "wave_number": 0,
+    {{
+      "wave_number": number,
       "name": "Wave Name",
-      "track": "Foundation|Application|Mixed",
+      "track": "Discovery|Delivery",
+      "track_description": "track purpose and approach",
       "applications": ["app1", "app2"],
       "duration_weeks": number,
+      "sprint_count": number,
       "dependencies_satisfied": ["dep1", "dep2"],
       "risk_level": "Low|Medium|High",
       "success_criteria": ["criteria1", "criteria2"],
+      "delivery_approach": "sprint methodology description",
+      "stakeholder_collaboration": "collaboration approach",
       "notes": "Additional planning notes"
-    }
+    }}
   ]
-}"""),
+}}"""),
         ("user", "Create a migration wave plan for these classified workloads:\n\n{workloads}")
     ])
     
@@ -104,22 +122,214 @@ Return JSON format:
     wave_plan = parse_llm_json_response(
         response.content,
         fallback_data={
-            "methodology": "Dual-Track Migration",
-            "total_waves": 1,
+            "methodology": "Dual-Track Agile Delivery",
+            "methodology_description": "Discovery and Delivery tracks running in parallel",
+            "total_waves": 2,
+            "total_sprints": 6,
             "estimated_duration_months": 6,
-            "waves": [{
-                "wave_number": 1,
-                "name": "Initial Migration Wave",
-                "track": "Mixed",
-                "applications": [app.get("name", "Unknown") for app in classified_workloads[:3]],
-                "duration_weeks": 8,
-                "risk_level": "Medium",
-                "success_criteria": ["Applications migrated successfully"]
-            }]
+            "key_principles": [
+                "Discovery Track runs one sprint ahead",
+                "Validated-then-built workflow",
+                "Continuous stakeholder collaboration"
+            ],
+            "waves": [
+                {
+                    "wave_number": 1,
+                    "name": "Discovery Track - Initial Investigation",
+                    "track": "Discovery",
+                    "track_description": "User needs investigation and technical feasibility",
+                    "applications": [app.get("name", "Unknown") for app in classified_workloads[:2]],
+                    "duration_weeks": 4,
+                    "sprint_count": 2,
+                    "risk_level": "Low",
+                    "success_criteria": ["Technical feasibility validated", "Backlog items refined"],
+                    "delivery_approach": "Discovery sprints with stakeholder validation",
+                    "stakeholder_collaboration": "Continuous validation sessions"
+                },
+                {
+                    "wave_number": 2,
+                    "name": "Delivery Track - Initial Migration",
+                    "track": "Delivery",
+                    "track_description": "Building validated migration increments",
+                    "applications": [app.get("name", "Unknown") for app in classified_workloads[:2]],
+                    "duration_weeks": 8,
+                    "sprint_count": 4,
+                    "risk_level": "Medium",
+                    "success_criteria": ["Migration increments delivered", "Stakeholder feedback incorporated"],
+                    "delivery_approach": "Time-boxed sprints with continuous delivery",
+                    "stakeholder_collaboration": "Sprint reviews and demos"
+                }
+            ]
         }
     )
     
     return wave_plan
+
+
+def _create_fallback_wave_plan(classified_workloads: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Create a fallback wave plan using dual-track agile delivery methodology."""
+    
+    # Group workloads by migration readiness and complexity for dual-track planning
+    discovery_ready = []  # Workloads ready for immediate delivery track
+    needs_discovery = []  # Workloads requiring discovery track investigation
+    
+    for workload in classified_workloads:
+        complexity = workload.get("complexity", "Medium").lower()
+        migration_readiness = workload.get("migration_readiness", "Needs Assessment").lower()
+        
+        if "ready" in migration_readiness and complexity == "low":
+            discovery_ready.append(workload)
+        else:
+            needs_discovery.append(workload)
+    
+    waves = []
+    
+    # Wave 1: Discovery-Ready Workloads (Delivery Track)
+    if discovery_ready:
+        waves.append({
+            "wave_number": 1,
+            "name": "Discovery-Ready Migration",
+            "track": "Delivery",
+            "track_description": "Validated workloads ready for immediate migration execution",
+            "applications": [w.get("name", "Unknown") for w in discovery_ready],
+            "duration_weeks": 4,
+            "sprint_count": 2,
+            "dependencies_satisfied": [],
+            "risk_level": "Low",
+            "success_criteria": [
+                "Migration increments delivered in 2-week sprints",
+                "Continuous stakeholder feedback incorporated",
+                "Migration patterns validated and documented"
+            ],
+            "delivery_approach": "Time-boxed sprints with continuous delivery",
+            "stakeholder_collaboration": "Weekly demos and feedback sessions",
+            "notes": "Validated-then-built approach for low-risk workloads"
+        })
+    
+    # Wave 2: Discovery Track Investigation (1 sprint ahead)
+    discovery_batch_1 = needs_discovery[:len(needs_discovery)//2] if needs_discovery else []
+    if discovery_batch_1:
+        waves.append({
+            "wave_number": 2,
+            "name": "Discovery Track - Batch 1",
+            "track": "Discovery",
+            "track_description": "Investigation of user needs, technical feasibility, and solution prototyping",
+            "applications": [w.get("name", "Unknown") for w in discovery_batch_1],
+            "duration_weeks": 6,
+            "sprint_count": 3,
+            "dependencies_satisfied": ["Wave 1 migration patterns established"],
+            "risk_level": "Medium",
+            "success_criteria": [
+                "User needs and technical feasibility validated",
+                "Backlog items refined and sized",
+                "Solution prototypes created and validated",
+                "Stakeholder approval for delivery track"
+            ],
+            "discovery_activities": [
+                "Technical feasibility assessment",
+                "User needs investigation",
+                "Solution prototyping",
+                "Stakeholder validation sessions"
+            ],
+            "delivery_approach": "Discovery sprints feeding validated backlog to delivery track",
+            "stakeholder_collaboration": "Continuous collaboration and validation",
+            "notes": "One sprint ahead of delivery track, creating validated-ready backlog"
+        })
+    
+    # Wave 3: Delivery Track - Batch 1 (from Discovery Track output)
+    if discovery_batch_1:
+        waves.append({
+            "wave_number": 3,
+            "name": "Delivery Track - Batch 1",
+            "track": "Delivery",
+            "track_description": "Building and releasing validated migration increments",
+            "applications": [w.get("name", "Unknown") for w in discovery_batch_1],
+            "duration_weeks": 8,
+            "sprint_count": 4,
+            "dependencies_satisfied": ["Discovery Track validation completed"],
+            "risk_level": "Medium",
+            "success_criteria": [
+                "Migration increments built and tested",
+                "Continuous service improvement implemented",
+                "Stakeholder feedback incorporated",
+                "Production deployment successful"
+            ],
+            "delivery_approach": "Short time-boxed sprints with continuous delivery",
+            "stakeholder_collaboration": "Sprint reviews and continuous feedback",
+            "notes": "Works from discovery-ready backlog with reduced rework"
+        })
+    
+    # Wave 4: Discovery Track - Batch 2 (Complex/Critical Systems)
+    discovery_batch_2 = needs_discovery[len(needs_discovery)//2:] if len(needs_discovery) > 1 else []
+    if discovery_batch_2:
+        waves.append({
+            "wave_number": 4,
+            "name": "Discovery Track - Complex Systems",
+            "track": "Discovery",
+            "track_description": "Deep investigation of complex and critical systems",
+            "applications": [w.get("name", "Unknown") for w in discovery_batch_2],
+            "duration_weeks": 8,
+            "sprint_count": 4,
+            "dependencies_satisfied": ["Batch 1 delivery patterns established"],
+            "risk_level": "High",
+            "success_criteria": [
+                "Complex system dependencies mapped",
+                "Modernization opportunities identified",
+                "Risk mitigation strategies validated",
+                "Detailed migration blueprints created"
+            ],
+            "discovery_activities": [
+                "Dependency mapping and analysis",
+                "Modernization feasibility assessment",
+                "Risk analysis and mitigation planning",
+                "Detailed solution architecture"
+            ],
+            "delivery_approach": "Extended discovery for complex systems",
+            "stakeholder_collaboration": "Intensive stakeholder workshops and validation",
+            "notes": "Thorough investigation for high-risk, complex workloads"
+        })
+    
+    # Wave 5: Delivery Track - Complex Systems
+    if discovery_batch_2:
+        waves.append({
+            "wave_number": 5,
+            "name": "Delivery Track - Complex Systems",
+            "track": "Delivery",
+            "track_description": "Careful delivery of complex and critical systems",
+            "applications": [w.get("name", "Unknown") for w in discovery_batch_2],
+            "duration_weeks": 12,
+            "sprint_count": 6,
+            "dependencies_satisfied": ["Complex systems discovery completed"],
+            "risk_level": "High",
+            "success_criteria": [
+                "Complex systems migrated with zero downtime",
+                "Business continuity maintained",
+                "Performance and security validated",
+                "Continuous improvement processes established"
+            ],
+            "delivery_approach": "Careful incremental delivery with extensive testing",
+            "stakeholder_collaboration": "Continuous monitoring and feedback",
+            "notes": "Validated-then-built approach for complex systems"
+        })
+    
+    total_duration = sum(wave.get("duration_weeks", 0) for wave in waves)
+    total_sprints = sum(wave.get("sprint_count", 0) for wave in waves)
+    
+    return {
+        "methodology": "Dual-Track Agile Delivery",
+        "methodology_description": "Discovery Track investigates user needs and technical feasibility one sprint ahead, while Delivery Track builds validated migration increments in time-boxed sprints",
+        "total_waves": len(waves),
+        "total_sprints": total_sprints,
+        "estimated_duration_months": round(total_duration / 4.33, 1),  # Convert weeks to months
+        "key_principles": [
+            "Discovery Track runs one sprint ahead of Delivery Track",
+            "Continuous flow of validated-then-built work",
+            "Embedded stakeholder collaboration throughout",
+            "Reduced rework through validation before building",
+            "Rapid incremental delivery of migrated workloads"
+        ],
+        "waves": waves
+    }
 
 
 def validate_wave_plan(wave_groups: List[WaveGroup], applications: List) -> List[str]:
@@ -171,15 +381,15 @@ def validate_wave_plan(wave_groups: List[WaveGroup], applications: List) -> List
     return warnings
 
 
-def optimize_wave_sequence(wave_groups: List[WaveGroup]) -> List[WaveGroup]:
+def optimise_wave_sequence(wave_groups: List[WaveGroup]) -> List[WaveGroup]:
     """
-    Optimize the wave sequence based on dependencies and risk levels.
+    Optimise the wave sequence based on dependencies and risk levels.
     
     Args:
-        wave_groups: List of wave groups to optimize
+        wave_groups: List of wave groups to optimise
         
     Returns:
-        Optimized list of wave groups
+        Optimised list of wave groups
     """
     # Sort waves by wave number to ensure proper sequence
     sorted_waves = sorted(wave_groups, key=lambda w: w.wave_number)

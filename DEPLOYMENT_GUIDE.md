@@ -1,9 +1,9 @@
-# 🚀 Pre-Sales Document Evaluator - Deployment Guide
+# Pre-Sales Document Evaluator - Deployment Guide
 
 Quick deployment guide for the Pre-Sales Document Evaluator, ranked from easiest to hardest.
 
-## 🐳 Docker (Recommended - Most Flexible)
-**⏱️ Time:** 10 minutes | **💰 Cost:** Varies by provider | **🎯 Difficulty:** ⭐⭐
+## Docker (Recommended - Most Flexible)
+**Time:** 10 minutes | **Cost:** Varies by provider | **Difficulty:** Beginner
 
 ### Prerequisites
 - Docker installed
@@ -29,58 +29,59 @@ Quick deployment guide for the Pre-Sales Document Evaluator, ranked from easiest
 
 ---
 
-## ☁️ AWS App Runner (Production Ready)
-**⏱️ Time:** 30 minutes | **💰 Cost:** ~$20/month | **🎯 Difficulty:** ⭐⭐⭐
+## AWS ECS Fargate (Production Ready)
+**Time:** 45 minutes | **Cost:** ~£25/month | **Difficulty:** Intermediate
 
 ### Features
-- ✅ Enterprise-grade scaling
-- ✅ High availability
-- ✅ Custom domains
-- ✅ Auto-scaling based on traffic
+- Enterprise-grade scaling
+- High availability
+- Custom domains
+- Auto-scaling based on traffic
+- Integration with AWS services
 
 See `deploy/aws.md` for full instructions.
 
 ---
 
-## 🔷 Azure Container Instances
-**⏱️ Time:** 20 minutes | **💰 Cost:** ~$15/month | **🎯 Difficulty:** ⭐⭐⭐
+## Azure Container Instances
+**Time:** 20 minutes | **Cost:** ~£15/month | **Difficulty:** Intermediate
 
 ### Features
-- ✅ Fast deployment
-- ✅ Pay-per-use pricing
-- ✅ Integration with Azure services
-- ✅ Built-in monitoring
+- Fast deployment
+- Pay-per-use pricing
+- Integration with Azure services
+- Built-in monitoring
 
 See `deploy/azure.md` for full instructions.
 
 ---
 
-## 📋 Required Environment Variables
+## Required Environment Variables
 
 All deployment methods require:
 - `OPENAI_API_KEY` - Your OpenAI API key
 
 ---
 
-## 📊 Platform Comparison
+## Platform Comparison
 
 | Platform | Cost/Month | Setup Time | Scaling | Custom Domain |
 |----------|------------|------------|---------|---------------|
 | Docker (Local) | Free | 5 min | Manual | No |
-| AWS App Runner | ~$20 | 30 min | Auto | Yes |
-| Azure Container | ~$15 | 20 min | Manual/Auto | Yes |
+| AWS ECS Fargate | ~£25 | 45 min | Auto | Yes |
+| Azure Container | ~£15 | 20 min | Manual/Auto | Yes |
 
 ---
 
-## 💡 Recommendation
+## Recommendation
 
 - **For Development/Testing:** Use Docker locally
-- **For Production:** Use AWS App Runner or Azure Container Instances
-- **For Enterprise:** Consider AWS App Runner with custom domain and monitoring
+- **For Production:** Use AWS ECS Fargate or Azure Container Instances
+- **For Enterprise:** Consider AWS ECS Fargate with custom domain and monitoring
 
 ---
 
-## 🆘 Need Help?
+## Need Help?
 
 1. Check the detailed deployment guides in the `deploy/` folder
 2. Ensure your OpenAI API key is valid

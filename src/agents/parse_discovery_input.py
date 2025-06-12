@@ -72,11 +72,11 @@ Focus on identifying:
 5. Dependencies between systems
 
 Return JSON format:
-{
+{{
   "applications": [...],
-  "infrastructure": {...},
-  "business_requirements": {...}
-}"""),
+  "infrastructure": {{...}},
+  "business_requirements": {{...}}
+}}"""),
         ("user", "Extract structured information from this discovery text:\n\n{text}")
     ])
     

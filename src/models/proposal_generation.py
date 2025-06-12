@@ -1,7 +1,8 @@
 from enum import Enum
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional, Union, Annotated
 from pydantic import BaseModel, Field
 from datetime import datetime
+from operator import add
 
 
 class MigrationStrategy(Enum):
@@ -47,6 +48,16 @@ class DiscoveryInput(BaseModel):
     project_name: str = Field(description="Migration project name")
     contact_info: Dict[str, str] = Field(default_factory=dict, description="Client contact information")
     business_context: Optional[str] = Field(None, description="Business drivers and context")
+    
+    # Additional context fields from UI
+    business_drivers: List[str] = Field(default_factory=list, description="Primary business drivers")
+    additional_context: Optional[str] = Field(None, description="Additional business context")
+    target_cloud: Optional[str] = Field(None, description="Target cloud platform")
+    migration_approach: Optional[str] = Field(None, description="Preferred migration approach")
+    timeline_constraint: Optional[str] = Field(None, description="Timeline expectations")
+    budget_constraint: Optional[str] = Field(None, description="Budget considerations")
+    risk_tolerance: Optional[str] = Field(None, description="Risk tolerance level")
+    compliance_requirements: List[str] = Field(default_factory=list, description="Compliance requirements")
 
 
 class Application(BaseModel):
@@ -81,7 +92,7 @@ class ArchitectureRecommendation(BaseModel):
     services: Dict[str, str] = Field(description="Recommended cloud services mapping")
     patterns: List[str] = Field(description="Recommended architecture patterns")
     security_controls: List[str] = Field(description="Security recommendations")
-    cost_optimization: List[str] = Field(description="Cost optimization strategies")
+    cost_optimisation: List[str] = Field(description="Cost optimisation strategies")
     well_architected_pillars: Dict[str, str] = Field(description="Well-Architected Framework alignment")
 
 
@@ -122,9 +133,11 @@ class ProposalState(BaseModel):
     # Parsed and classified data
     applications: List[Application] = Field(default_factory=list)
     workload_classification: Dict[str, Any] = Field(default_factory=dict)
+    classified_workloads: List[Dict[str, Any]] = Field(default_factory=list)
     
     # Planning outputs
     wave_groups: List[WaveGroup] = Field(default_factory=list)
+    migration_waves: Dict[str, Any] = Field(default_factory=dict)
     migration_strategies: Dict[str, MigrationStrategy] = Field(default_factory=dict)
     modernisation_recommendations: Dict[str, Any] = Field(default_factory=dict)
     
@@ -147,11 +160,11 @@ class ProposalState(BaseModel):
     
     # Versioning and feedback loops
     version: int = Field(default=1)
-    feedback_loops: List[str] = Field(default_factory=list)
+    feedback_loops: Annotated[List[str], add] = Field(default_factory=list)
     
-    # Error handling
-    errors: List[str] = Field(default_factory=list)
-    warnings: List[str] = Field(default_factory=list)
+    # Error handling - using Annotated to allow multiple nodes to add errors/warnings
+    errors: Annotated[List[str], add] = Field(default_factory=list)
+    warnings: Annotated[List[str], add] = Field(default_factory=list)
 
 
 class ProposalTemplate(BaseModel):

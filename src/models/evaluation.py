@@ -34,21 +34,46 @@ class PhaseContent(BaseModel):
 
 
 class PhaseEvaluation(BaseModel):
-    """Evaluation result for a specific migration phase."""
+    """Evaluation results for a specific migration phase."""
     phase: MigrationPhase
-    score: int = Field(ge=0, le=3)
-    criteria_met: Dict[str, bool] = Field(default_factory=dict)
+    score: int = Field(ge=0, le=3, description="Phase score from 0-3")
     strengths: List[str] = Field(default_factory=list)
     weaknesses: List[str] = Field(default_factory=list)
     evidence: List[str] = Field(default_factory=list)
+    recommendations: List[str] = Field(default_factory=list)
 
 
 class SpecCompliance(BaseModel):
-    """Compliance check against Modernize.AI specification."""
-    compliant_areas: List[str] = Field(default_factory=list)
-    non_compliant_areas: List[str] = Field(default_factory=list)
-    missing_elements: List[str] = Field(default_factory=list)
+    """Compliance check against migrate.ai specification."""
     overall_compliance_score: float = Field(ge=0.0, le=1.0)
+    missing_elements: List[str] = Field(default_factory=list)
+    compliance_strengths: List[str] = Field(default_factory=list)
+    improvement_areas: List[str] = Field(default_factory=list)
+    recommendations: List[str] = Field(default_factory=list)
+
+
+class GapAnalysis(BaseModel):
+    """Gap analysis results categorised by priority."""
+    critical_gaps: List[Dict[str, str]] = Field(default_factory=list)
+    high_priority_gaps: List[Dict[str, str]] = Field(default_factory=list)
+    medium_priority_gaps: List[Dict[str, str]] = Field(default_factory=list)
+    low_priority_gaps: List[Dict[str, str]] = Field(default_factory=list)
+
+
+class Recommendations(BaseModel):
+    """Recommendations categorised by priority."""
+    critical_recommendations: List[Dict[str, str]] = Field(default_factory=list)
+    high_priority_recommendations: List[Dict[str, str]] = Field(default_factory=list)
+    medium_priority_recommendations: List[Dict[str, str]] = Field(default_factory=list)
+    low_priority_recommendations: List[Dict[str, str]] = Field(default_factory=list)
+
+
+class FinalScore(BaseModel):
+    """Final evaluation score and breakdown."""
+    final_score: int = Field(ge=0, le=100)
+    score_breakdown: Dict[str, Any] = Field(default_factory=dict)
+    score_rationale: str = ""
+    grade: str = "C"
 
 
 class Gap(BaseModel):
@@ -70,15 +95,13 @@ class Recommendation(BaseModel):
 
 
 class EvaluationResult(BaseModel):
-    """Final evaluation result."""
-    scorecard: Dict[MigrationPhase, int] = Field(default_factory=dict)
-    comments: Dict[MigrationPhase, str] = Field(default_factory=dict)
+    """Complete evaluation result."""
     phase_evaluations: List[PhaseEvaluation] = Field(default_factory=list)
-    spec_compliance: SpecCompliance
-    gaps: List[Gap] = Field(default_factory=list)
-    recommendations: List[Recommendation] = Field(default_factory=list)
-    overall_score: float = Field(ge=0.0, le=3.0)
-    summary: str
+    spec_compliance: Optional[SpecCompliance] = None
+    gap_analysis: Optional[GapAnalysis] = None
+    recommendations: Optional[Recommendations] = None
+    final_score: Optional[FinalScore] = None
+    errors: List[str] = Field(default_factory=list)
 
 
 def add_to_list(existing: List, new: List) -> List:

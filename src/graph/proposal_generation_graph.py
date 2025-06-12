@@ -258,7 +258,7 @@ class ProposalGenerationOrchestrator:
                 "metadata": {
                     "total_feedback_loops": len(getattr(final_state, 'feedback_loops', [])),
                     "final_version": getattr(final_state, 'version', 1),
-                    "optimization_applied": len(getattr(final_state, 'feedback_loops', [])) > 0
+                    "optimisation_applied": len(getattr(final_state, 'feedback_loops', [])) > 0
                 }
             }
             

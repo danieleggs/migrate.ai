@@ -19,8 +19,7 @@ load_dotenv()
 
 # Page configuration
 st.set_page_config(
-    page_title="Modernize.AI Pre-Sales Evaluator",
-    page_icon="🔧",
+    page_title="migrate.ai Pre-Sales Evaluator",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -155,7 +154,7 @@ def main():
     ## Migration-Focused Document Evaluation Tool
     
     Choose from different evaluation types to assess your documents:
-    - **Migration Proposals**: Full evaluation against Modernize.AI specification
+    - **Migration Proposals**: Full evaluation against migrate.ai specification
     - **Statement of Work**: Framework for SOW evaluation (logic to be implemented)
     - **Migration Proposal Generator**: Generate comprehensive migration proposals from discovery data
     """)
@@ -202,13 +201,128 @@ def main():
         # File upload
         uploaded_file = st.file_uploader(
             "Upload Document",
-            type=['pdf', 'docx', 'txt', 'md'],
-            help="Upload your document for evaluation"
+            type=['pdf', 'docx', 'txt', 'md', 'xlsx', 'xls'],
+            help="Upload your document for evaluation (PDF, DOCX, TXT, MD) or Excel file for proposal generation (XLSX, XLS)"
         )
         
         if uploaded_file:
             st.success(f"File uploaded: {uploaded_file.name}")
             st.info(f"File size: {len(uploaded_file.getvalue())} bytes")
+        
+        # Additional context inputs for Proposal Generator
+        proposal_context = {}
+        if selected_eval_type == EvaluationType.PROPOSAL_GENERATOR:
+            st.markdown("---")
+            st.subheader("📋 Project Context")
+            
+            # Client and project details
+            col1, col2 = st.columns(2)
+            with col1:
+                client_name = st.text_input(
+                    "Client Name",
+                    value="",
+                    placeholder="e.g., Acme Corporation",
+                    help="Name of the client organization"
+                )
+            with col2:
+                project_name = st.text_input(
+                    "Project Name",
+                    value="",
+                    placeholder="e.g., Cloud Migration Initiative",
+                    help="Name of the migration project"
+                )
+            
+            # Business drivers
+            st.markdown("**Business Drivers & Objectives**")
+            business_drivers = st.multiselect(
+                "Primary drivers for migration:",
+                options=[
+                    "Cost Optimization",
+                    "Digital Transformation",
+                    "Scalability & Performance",
+                    "Security & Compliance",
+                    "Innovation & Agility",
+                    "Data Center Exit",
+                    "Disaster Recovery",
+                    "Modernization",
+                    "Competitive Advantage",
+                    "Regulatory Requirements"
+                ],
+                help="Select the main business drivers for this migration"
+            )
+            
+            additional_context = st.text_area(
+                "Additional Business Context",
+                placeholder="e.g., Legacy system end-of-life, merger integration, new market expansion...",
+                help="Any additional context about business drivers, constraints, or objectives"
+            )
+            
+            # Target cloud and preferences
+            st.markdown("**Target Environment**")
+            col1, col2 = st.columns(2)
+            with col1:
+                target_cloud = st.selectbox(
+                    "Primary Target Cloud",
+                    options=["AWS", "Microsoft Azure", "Google Cloud", "Multi-Cloud", "Hybrid", "Not Specified"],
+                    index=5,
+                    help="Primary cloud platform for migration"
+                )
+            with col2:
+                migration_approach = st.selectbox(
+                    "Preferred Migration Approach",
+                    options=["Lift & Shift First", "Modernize Where Possible", "Cloud-Native Transformation", "Hybrid Approach", "Not Specified"],
+                    index=4,
+                    help="Overall approach preference for migration"
+                )
+            
+            # Timeline and constraints
+            st.markdown("**Timeline & Constraints**")
+            col1, col2 = st.columns(2)
+            with col1:
+                timeline_constraint = st.selectbox(
+                    "Timeline Urgency",
+                    options=["Flexible", "Moderate (6-12 months)", "Urgent (3-6 months)", "Critical (<3 months)", "Not Specified"],
+                    index=4,
+                    help="Overall timeline expectations"
+                )
+            with col2:
+                budget_constraint = st.selectbox(
+                    "Budget Considerations",
+                    options=["Flexible", "Moderate Budget", "Cost-Conscious", "Minimal Budget", "Not Specified"],
+                    index=4,
+                    help="Budget constraints for the project"
+                )
+            
+            # Risk tolerance and compliance
+            st.markdown("**Risk & Compliance**")
+            col1, col2 = st.columns(2)
+            with col1:
+                risk_tolerance = st.selectbox(
+                    "Risk Tolerance",
+                    options=["Conservative", "Moderate", "Aggressive", "Not Specified"],
+                    index=3,
+                    help="Organization's tolerance for migration risks"
+                )
+            with col2:
+                compliance_requirements = st.multiselect(
+                    "Compliance Requirements",
+                    options=["GDPR", "HIPAA", "SOX", "PCI-DSS", "ISO 27001", "FedRAMP", "SOC 2", "None", "Other"],
+                    help="Relevant compliance frameworks"
+                )
+            
+            # Store context for use in proposal generation
+            proposal_context = {
+                "client_name": client_name or "Client Organization",
+                "project_name": project_name or f"Migration Project - {uploaded_file.name if uploaded_file else 'Discovery'}",
+                "business_drivers": business_drivers,
+                "additional_context": additional_context,
+                "target_cloud": target_cloud,
+                "migration_approach": migration_approach,
+                "timeline_constraint": timeline_constraint,
+                "budget_constraint": budget_constraint,
+                "risk_tolerance": risk_tolerance,
+                "compliance_requirements": compliance_requirements
+            }
         
         st.markdown("---")
         
@@ -222,7 +336,7 @@ def main():
             st.markdown("---")
             
             # Add re-run button
-            if st.button("🔄 Re-run Evaluation", help="Force re-evaluation of the document"):
+            if st.button("Re-run Evaluation", help="Force re-evaluation of the document"):
                 # Clear cache to force re-evaluation
                 st.session_state.evaluation_result = None
                 st.session_state.last_file_hash = None
@@ -235,7 +349,7 @@ def main():
     
     # Main content area - only show evaluation if file is uploaded
     if uploaded_file is not None:
-        run_evaluation_with_cache(uploaded_file, selected_eval_type, selected_config, show_detailed_analysis, show_phase_breakdown, show_recommendations)
+        run_evaluation_with_cache(uploaded_file, selected_eval_type, selected_config, show_detailed_analysis, show_phase_breakdown, show_recommendations, proposal_context)
     else:
         # Clear cached results when no file is uploaded
         if st.session_state.evaluation_result is not None:
@@ -249,7 +363,7 @@ def main():
         st.markdown("Select an evaluation type from the sidebar and upload your document to get started.")
 
 
-def run_evaluation_with_cache(uploaded_file, eval_type, config, show_detailed_analysis, show_phase_breakdown, show_recommendations):
+def run_evaluation_with_cache(uploaded_file, eval_type, config, show_detailed_analysis, show_phase_breakdown, show_recommendations, proposal_context=None):
     """Run evaluation with caching to avoid re-running on display option changes."""
     
     # Create a hash of the file content to detect changes
@@ -269,7 +383,7 @@ def run_evaluation_with_cache(uploaded_file, eval_type, config, show_detailed_an
         st.subheader(f"{config.name}: {uploaded_file.name}")
         
         # Run the actual evaluation
-        result = run_evaluation_core(uploaded_file, eval_type, config)
+        result = run_evaluation_core(uploaded_file, eval_type, config, proposal_context)
         
         # Cache the results
         if result and result.get("success"):
@@ -288,7 +402,7 @@ def run_evaluation_with_cache(uploaded_file, eval_type, config, show_detailed_an
     else:
         # Using cached results - show a subtle indicator
         st.subheader(f"{config.name}: {uploaded_file.name}")
-        st.caption("📋 Using cached evaluation results (change file or evaluation type to re-run)")
+        st.caption("Using cached evaluation results (change file or evaluation type to re-run)")
     
     # Display results (either fresh or cached)
     if st.session_state.evaluation_result:
@@ -302,7 +416,7 @@ def run_evaluation_with_cache(uploaded_file, eval_type, config, show_detailed_an
             display_proposal_generator_results(result, show_detailed_analysis, show_phase_breakdown, show_recommendations)
 
 
-def run_evaluation_core(uploaded_file, eval_type, config):
+def run_evaluation_core(uploaded_file, eval_type, config, proposal_context=None):
     """Core evaluation logic without caching."""
     
     # Create progress bar
@@ -377,14 +491,30 @@ def run_evaluation_core(uploaded_file, eval_type, config):
             status_text.text("Analyzing discovery data...")
             progress_bar.progress(30)
             
-            # Create discovery input data
-            discovery_data = {
-                "client_name": "Client",  # Default, can be extracted from filename
-                "project_name": f"Migration Project - {uploaded_file.name}",
-                "source_type": "text",
-                "raw_data": content,
-                "business_context": "Cloud migration and modernization initiative"
-            }
+            # Create discovery input data with context
+            if proposal_context:
+                discovery_data = {
+                    "client_name": proposal_context.get("client_name", "Client Organization"),
+                    "project_name": proposal_context.get("project_name", f"Migration Project - {uploaded_file.name}"),
+                    "source_type": "text",
+                    "raw_data": content,
+                    "business_context": _build_business_context(proposal_context),
+                    "target_cloud": proposal_context.get("target_cloud", "Not Specified"),
+                    "migration_approach": proposal_context.get("migration_approach", "Not Specified"),
+                    "timeline_constraint": proposal_context.get("timeline_constraint", "Not Specified"),
+                    "budget_constraint": proposal_context.get("budget_constraint", "Not Specified"),
+                    "risk_tolerance": proposal_context.get("risk_tolerance", "Not Specified"),
+                    "compliance_requirements": proposal_context.get("compliance_requirements", [])
+                }
+            else:
+                # Fallback to default values
+                discovery_data = {
+                    "client_name": "Client Organization",
+                    "project_name": f"Migration Project - {uploaded_file.name}",
+                    "source_type": "text",
+                    "raw_data": content,
+                    "business_context": "Cloud migration and modernization initiative"
+                }
             
             status_text.text("Generating migration proposal...")
             progress_bar.progress(50)
@@ -411,6 +541,54 @@ def run_evaluation_core(uploaded_file, eval_type, config):
     finally:
         progress_bar.empty()
         status_text.empty()
+
+
+def _build_business_context(proposal_context):
+    """Build a comprehensive business context string from the proposal context."""
+    context_parts = []
+    
+    # Business drivers
+    drivers = proposal_context.get("business_drivers", [])
+    if drivers:
+        context_parts.append(f"Primary business drivers: {', '.join(drivers)}")
+    
+    # Additional context
+    additional = proposal_context.get("additional_context", "").strip()
+    if additional:
+        context_parts.append(f"Additional context: {additional}")
+    
+    # Target environment
+    target_cloud = proposal_context.get("target_cloud", "Not Specified")
+    if target_cloud != "Not Specified":
+        context_parts.append(f"Target cloud platform: {target_cloud}")
+    
+    migration_approach = proposal_context.get("migration_approach", "Not Specified")
+    if migration_approach != "Not Specified":
+        context_parts.append(f"Preferred migration approach: {migration_approach}")
+    
+    # Timeline and budget
+    timeline = proposal_context.get("timeline_constraint", "Not Specified")
+    if timeline != "Not Specified":
+        context_parts.append(f"Timeline expectations: {timeline}")
+    
+    budget = proposal_context.get("budget_constraint", "Not Specified")
+    if budget != "Not Specified":
+        context_parts.append(f"Budget considerations: {budget}")
+    
+    # Risk and compliance
+    risk_tolerance = proposal_context.get("risk_tolerance", "Not Specified")
+    if risk_tolerance != "Not Specified":
+        context_parts.append(f"Risk tolerance: {risk_tolerance}")
+    
+    compliance = proposal_context.get("compliance_requirements", [])
+    if compliance and compliance != ["None"]:
+        context_parts.append(f"Compliance requirements: {', '.join(compliance)}")
+    
+    # Combine all parts
+    if context_parts:
+        return ". ".join(context_parts) + "."
+    else:
+        return "Cloud migration and modernization initiative."
 
 
 def display_evaluation_results(result: Dict[str, Any], show_detailed: bool, show_phases: bool, show_recs: bool):
@@ -845,13 +1023,18 @@ def display_proposal_generator_results(result, show_detailed_analysis, show_phas
     col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
-        st.metric("Applications", len(proposal_state.applications) if proposal_state.applications else 0)
+        applications = proposal_state.get("applications", []) or proposal_state.get("classified_workloads", [])
+        st.metric("Applications", len(applications))
     
     with col2:
-        st.metric("Migration Waves", len(proposal_state.wave_groups) if proposal_state.wave_groups else 0)
+        wave_groups = proposal_state.get("wave_groups", [])
+        migration_waves = proposal_state.get("migration_waves", {})
+        waves_count = len(wave_groups) if wave_groups else (len(migration_waves.get("waves", [])) if migration_waves else 0)
+        st.metric("Migration Waves", waves_count)
     
     with col3:
-        total_sprints = sum(est.total_sprints for est in proposal_state.sprint_estimates) if proposal_state.sprint_estimates else 0
+        sprint_estimates = proposal_state.get("sprint_estimates", [])
+        total_sprints = sum(est.get("total_sprints", 0) for est in sprint_estimates) if sprint_estimates else 0
         st.metric("Total Sprints", total_sprints)
     
     with col4:
@@ -860,127 +1043,189 @@ def display_proposal_generator_results(result, show_detailed_analysis, show_phas
     
     with col5:
         feedback_count = len(result.get("feedback_loops", []))
-        st.metric("Optimizations", feedback_count, help="Number of feedback loops triggered for optimization")
+        st.metric("Optimisations", feedback_count, help="Number of feedback loops triggered for optimisation")
     
     # Show feedback loop information if any occurred
     if result.get("feedback_loops"):
-        st.info(f"🔄 **Intelligent Optimization Applied**: {result.get('iterations', 1)} iterations with {len(result['feedback_loops'])} feedback loops")
+        st.info(f"**Intelligent Optimisation Applied**: {result.get('iterations', 1)} iterations with {len(result['feedback_loops'])} feedback loops")
         
-        with st.expander("View Optimization Details"):
+        with st.expander("View Optimisation Details"):
             st.markdown("**Feedback Loops Triggered:**")
             for loop in result["feedback_loops"]:
                 if "wave_replan" in loop:
-                    st.markdown("🌊 **Wave Replanning**: Modernization bias detected refactor opportunities, replanned migration waves")
+                    st.markdown("**Wave Replanning**: Modernisation bias detected refactor opportunities, replanned migration waves")
                 elif "scope_update" in loop:
-                    st.markdown("📋 **Scope Update**: Complex architecture patterns detected, updated project scope")
+                    st.markdown("**Scope Update**: Complex architecture patterns detected, updated project scope")
                 elif "strategy_reclassification" in loop:
-                    st.markdown("🎯 **Strategy Optimization**: High effort detected, reclassified to simpler migration strategies")
+                    st.markdown("**Strategy Optimisation**: High effort detected, reclassified to simpler migration strategies")
                 else:
-                    st.markdown(f"🔄 **{loop.replace('_', ' ').title()}**")
+                    st.markdown(f"**{loop.replace('_', ' ').title()}**")
             
-            st.markdown(f"**Final Version**: {result.get('iterations', 1)} (optimized through recursive analysis)")
+            st.markdown(f"**Final Version**: {result.get('iterations', 1)} (optimised through recursive analysis)")
     else:
-        st.success("✅ **Optimal Plan Generated**: No optimization loops needed - plan was optimal on first pass")
+        st.success("**Optimal Plan Generated**: No optimisation loops needed - plan was optimal on first pass")
     
     # Applications Analysis
-    if show_detailed_analysis and proposal_state.applications:
+    applications = proposal_state.get("applications", []) or proposal_state.get("classified_workloads", [])
+    if show_detailed_analysis and applications:
         st.subheader("Application Portfolio Analysis")
         
         # Create applications dataframe for visualization
         app_data = []
-        for app in proposal_state.applications:
-            strategy = proposal_state.migration_strategies.get(app.name, "Unknown") if proposal_state.migration_strategies else "Unknown"
+        migration_strategies = proposal_state.get("migration_strategies", {})
+        
+        for app in applications:
+            # Handle both object and dict formats
+            app_name = app.get("name") if isinstance(app, dict) else getattr(app, "name", "Unknown")
+            app_tech = app.get("technology_stack", []) if isinstance(app, dict) else getattr(app, "technology_stack", [])
+            app_criticality = app.get("business_criticality", "Medium") if isinstance(app, dict) else getattr(app, "criticality", "Medium")
+            app_users = app.get("estimated_users", 0) if isinstance(app, dict) else getattr(app, "estimated_users", 0)
+            
+            strategy = migration_strategies.get(app_name, "Unknown")
+            
             app_data.append({
-                "Application": app.name,
-                "Technology": ", ".join(app.technology_stack[:3]) + ("..." if len(app.technology_stack) > 3 else ""),
-                "Criticality": app.criticality.value if hasattr(app.criticality, 'value') else str(app.criticality),
-                "Strategy": strategy.value if hasattr(strategy, 'value') else str(strategy),
-                "Users": app.estimated_users or 0
+                "Application": app_name,
+                "Technology": ", ".join(app_tech[:3]) + ("..." if len(app_tech) > 3 else "") if app_tech else "Unknown",
+                "Criticality": str(app_criticality),
+                "Strategy": str(strategy),
+                "Users": app_users or 0
             })
         
-        df = pd.DataFrame(app_data)
-        st.dataframe(df, use_container_width=True)
-        
-        # Strategy distribution chart
-        if proposal_state.migration_strategies:
-            strategy_counts = {}
-            for strategy in proposal_state.migration_strategies.values():
-                strategy_name = strategy.value if hasattr(strategy, 'value') else str(strategy)
-                strategy_counts[strategy_name] = strategy_counts.get(strategy_name, 0) + 1
+        if app_data:
+            df = pd.DataFrame(app_data)
+            st.dataframe(df, use_container_width=True)
             
-            fig = px.pie(
-                values=list(strategy_counts.values()),
-                names=list(strategy_counts.keys()),
-                title="Migration Strategy Distribution"
-            )
-            st.plotly_chart(fig, use_container_width=True)
+            # Strategy distribution chart
+            if migration_strategies:
+                strategy_counts = {}
+                for strategy in migration_strategies.values():
+                    strategy_name = str(strategy)
+                    strategy_counts[strategy_name] = strategy_counts.get(strategy_name, 0) + 1
+                
+                if strategy_counts:
+                    fig = px.pie(
+                        values=list(strategy_counts.values()),
+                        names=list(strategy_counts.keys()),
+                        title="Migration Strategy Distribution"
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
     
     # Wave Planning
-    if show_phase_breakdown and proposal_state.wave_groups:
+    wave_groups = proposal_state.get("wave_groups", [])
+    migration_waves = proposal_state.get("migration_waves", {})
+    
+    if show_phase_breakdown and (wave_groups or migration_waves):
         st.subheader("Migration Wave Planning")
         
-        for wave in proposal_state.wave_groups:
-            with st.expander(f"Wave {wave.wave_number}: {wave.name}"):
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.markdown(f"**Strategy:** {wave.strategy}")
-                    st.markdown(f"**Duration:** {wave.estimated_duration_weeks} weeks")
-                    st.markdown(f"**Risk Level:** {wave.risk_level.value if hasattr(wave.risk_level, 'value') else str(wave.risk_level)}")
-                
-                with col2:
-                    st.markdown("**Applications:**")
-                    for app_name in wave.applications:
-                        st.markdown(f"• {app_name}")
-                
-                if wave.prerequisites:
-                    st.markdown("**Prerequisites:**")
-                    for prereq in wave.prerequisites:
-                        st.markdown(f"• {prereq}")
+        # Handle wave_groups format
+        if wave_groups:
+            for wave in wave_groups:
+                wave_name = getattr(wave, "name", f"Wave {getattr(wave, 'wave_number', 'Unknown')}")
+                with st.expander(f"Wave {getattr(wave, 'wave_number', 'Unknown')}: {wave_name}"):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.markdown(f"**Strategy:** {getattr(wave, 'strategy', 'Unknown')}")
+                        st.markdown(f"**Duration:** {getattr(wave, 'estimated_duration_weeks', 'Unknown')} weeks")
+                        st.markdown(f"**Risk Level:** {getattr(wave, 'risk_level', 'Unknown')}")
+                    
+                    with col2:
+                        st.markdown("**Applications:**")
+                        for app_name in getattr(wave, "applications", []):
+                            st.markdown(f"• {app_name}")
+                    
+                    prerequisites = getattr(wave, "prerequisites", [])
+                    if prerequisites:
+                        st.markdown("**Prerequisites:**")
+                        for prereq in prerequisites:
+                            st.markdown(f"• {prereq}")
+        
+        # Handle migration_waves format
+        elif migration_waves and migration_waves.get("waves"):
+            for wave in migration_waves["waves"]:
+                wave_name = wave.get("name", f"Wave {wave.get('wave_number', 'Unknown')}")
+                with st.expander(f"Wave {wave.get('wave_number', 'Unknown')}: {wave_name}"):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.markdown(f"**Track:** {wave.get('track', 'Unknown')}")
+                        st.markdown(f"**Duration:** {wave.get('duration_weeks', 'Unknown')} weeks")
+                        st.markdown(f"**Risk Level:** {wave.get('risk_level', 'Unknown')}")
+                    
+                    with col2:
+                        st.markdown("**Applications:**")
+                        for app_name in wave.get("applications", []):
+                            st.markdown(f"• {app_name}")
+                    
+                    success_criteria = wave.get("success_criteria", [])
+                    if success_criteria:
+                        st.markdown("**Success Criteria:**")
+                        for criteria in success_criteria:
+                            st.markdown(f"• {criteria}")
     
     # Architecture Recommendations
-    if show_recommendations and proposal_state.architecture_recommendations:
+    architecture_recommendations = proposal_state.get("architecture_recommendations", [])
+    if show_recommendations and architecture_recommendations:
         st.subheader("Architecture Recommendations")
         
-        for rec in proposal_state.architecture_recommendations:
-            with st.expander(f"{rec.cloud_provider.value.upper()} Architecture"):
-                st.markdown("**Recommended Services:**")
-                for service_type, service_name in rec.services.items():
-                    st.markdown(f"• **{service_type.title()}:** {service_name}")
+        for rec in architecture_recommendations:
+            # Handle both object and dict formats
+            if isinstance(rec, dict):
+                cloud_provider = rec.get("cloud_provider", "Unknown")
+                services = rec.get("services", {})
+                patterns = rec.get("patterns", [])
+            else:
+                cloud_provider = getattr(rec, "cloud_provider", "Unknown")
+                services = getattr(rec, "services", {})
+                patterns = getattr(rec, "patterns", [])
+            
+            with st.expander(f"{str(cloud_provider).upper()} Architecture"):
+                if services:
+                    st.markdown("**Recommended Services:**")
+                    for service_type, service_name in services.items():
+                        st.markdown(f"• **{service_type.title()}:** {service_name}")
                 
-                if rec.patterns:
+                if patterns:
                     st.markdown("**Architecture Patterns:**")
-                    for pattern in rec.patterns:
+                    for pattern in patterns:
                         st.markdown(f"• {pattern}")
-                
-                if rec.best_practices:
-                    st.markdown("**Best Practices:**")
-                    for practice in rec.best_practices:
-                        st.markdown(f"• {practice}")
     
     # GenAI Tools
-    if proposal_state.genai_tool_plans:
+    genai_tool_plans = proposal_state.get("genai_tool_plans", [])
+    if genai_tool_plans:
         st.subheader("GenAI Tool Integration")
         
-        for plan in proposal_state.genai_tool_plans:
-            with st.expander(f"{plan.tool.value.replace('_', ' ').title()}"):
-                st.markdown("**Use Cases:**")
-                for use_case in plan.use_cases:
-                    st.markdown(f"• {use_case}")
+        for plan in genai_tool_plans:
+            # Handle both object and dict formats
+            if isinstance(plan, dict):
+                tool_name = plan.get("tool", "Unknown Tool")
+                use_cases = plan.get("use_cases", [])
+                expected_benefits = plan.get("expected_benefits", [])
+            else:
+                tool_name = getattr(plan, "tool", "Unknown Tool")
+                use_cases = getattr(plan, "use_cases", [])
+                expected_benefits = getattr(plan, "expected_benefits", [])
+            
+            with st.expander(f"{str(tool_name).replace('_', ' ').title()}"):
+                if use_cases:
+                    st.markdown("**Use Cases:**")
+                    for use_case in use_cases:
+                        st.markdown(f"• {use_case}")
                 
-                st.markdown("**Expected Benefits:**")
-                for benefit in plan.expected_benefits:
-                    st.markdown(f"• {benefit}")
-                
-                st.markdown(f"**Timeline:** {plan.implementation_timeline}")
+                if expected_benefits:
+                    st.markdown("**Expected Benefits:**")
+                    for benefit in expected_benefits:
+                        st.markdown(f"• {benefit}")
     
     # Generated Proposal Content
-    if proposal_state.markdown_output:
+    markdown_output = proposal_state.get("markdown_output")
+    if markdown_output:
         st.subheader("Generated Proposal")
         
         # Show preview
         with st.expander("Preview Proposal Content"):
-            st.markdown(proposal_state.markdown_output[:2000] + "..." if len(proposal_state.markdown_output) > 2000 else proposal_state.markdown_output)
+            preview_content = markdown_output[:2000] + "..." if len(markdown_output) > 2000 else markdown_output
+            st.markdown(preview_content)
     
     # Export Options
     st.subheader("Export Proposal")
@@ -989,10 +1234,10 @@ def display_proposal_generator_results(result, show_detailed_analysis, show_phas
     
     with col1:
         if st.button("Export as Markdown"):
-            if proposal_state.markdown_output:
+            if markdown_output:
                 st.download_button(
                     label="Download Markdown",
-                    data=proposal_state.markdown_output,
+                    data=markdown_output,
                     file_name=f"migration_proposal_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
                     mime="text/markdown"
                 )
@@ -1015,29 +1260,15 @@ def display_proposal_generator_results(result, show_detailed_analysis, show_phas
             # Convert proposal state to dict for JSON serialization
             proposal_dict = {
                 "success": result.get("success"),
-                "applications": [
-                    {
-                        "name": app.name,
-                        "description": app.description,
-                        "technology_stack": app.technology_stack,
-                        "criticality": app.criticality.value if hasattr(app.criticality, 'value') else str(app.criticality)
-                    } for app in proposal_state.applications
-                ] if proposal_state.applications else [],
-                "wave_groups": [
-                    {
-                        "wave_number": wave.wave_number,
-                        "name": wave.name,
-                        "applications": wave.applications,
-                        "strategy": wave.strategy,
-                        "duration_weeks": wave.estimated_duration_weeks
-                    } for wave in proposal_state.wave_groups
-                ] if proposal_state.wave_groups else [],
+                "applications": applications,
+                "wave_groups": wave_groups,
+                "migration_waves": migration_waves,
                 "feedback_loops": result.get("feedback_loops", []),
                 "iterations": result.get("iterations", 1),
-                "optimization_applied": len(result.get("feedback_loops", [])) > 0
+                "optimisation_applied": len(result.get("feedback_loops", [])) > 0
             }
             
-            json_content = json.dumps(proposal_dict, indent=2)
+            json_content = json.dumps(proposal_dict, indent=2, default=str)
             st.download_button(
                 label="Download JSON",
                 data=json_content,

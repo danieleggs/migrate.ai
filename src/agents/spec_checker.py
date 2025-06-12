@@ -1,3 +1,9 @@
+"""
+Specification Checker Agent
+
+Agent responsible for checking overall compliance with migrate.ai specification.
+"""
+
 from typing import Dict, Any, List
 import yaml
 from pathlib import Path
@@ -5,161 +11,134 @@ from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 
 from ..models.evaluation import GraphState, SpecCompliance
+from ..utils.json_parser import parse_llm_json_response
 
 
-class SpecCheckerAgent:
-    """Agent responsible for checking overall compliance with Modernize.AI specification."""
+class SpecChecker:
+    """Checks overall compliance with the migrate.ai specification."""
     
-    def __init__(self, llm: ChatOpenAI):
-        self.llm = llm
-        self.spec = self._load_specification()
-        self.prompt = self._create_prompt()
+    def __init__(self):
+        self.spec = self._load_spec()
     
-    def _load_specification(self) -> Dict[str, Any]:
-        """Load the Modernize.AI specification."""
+    def _load_spec(self) -> Dict[str, Any]:
+        """Load the migrate.ai specification."""
         spec_path = Path(__file__).parent.parent / "config" / "modernize_ai_spec.yaml"
         with open(spec_path, 'r') as f:
             return yaml.safe_load(f)
     
-    def _create_prompt(self) -> ChatPromptTemplate:
-        """Create compliance checking prompt."""
-        core_principles = self.spec["modernize_ai_specification"]["core_principles"]
-        red_flags = self.spec["modernize_ai_specification"]["red_flags"]
+    def check_compliance(self, content: str, phase_evaluations: list = None) -> SpecCompliance:
+        """Check overall compliance with the specification."""
         
-        return ChatPromptTemplate.from_messages([
-            ("system", f"""You are a Modernize.AI compliance expert. Your task is to assess overall compliance with the Modernize.AI Agent-Led Migration Specification.
+        core_principles = self.spec["migrate_ai_specification"]["core_principles"]
+        red_flags = self.spec["migrate_ai_specification"]["red_flags"]
+        
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", f"""You are a migrate.ai compliance expert. Your task is to assess overall compliance with the migrate.ai Agent-Led Migration Specification.
 
-CORE PRINCIPLES TO CHECK:
-{yaml.dump(core_principles, default_flow_style=False)}
+Core Principles to evaluate:
+{self._format_principles(core_principles)}
 
-RED FLAGS TO IDENTIFY:
-{yaml.dump(red_flags, default_flow_style=False)}
+Red Flags to check for:
+{self._format_red_flags(red_flags)}
 
-Assess the document for:
+Evaluation criteria:
 1. Adherence to core principles
-2. Presence of red flags
-3. Missing critical elements
-4. Overall alignment with Modernize.AI approach
+2. Absence of red flag indicators
+3. Quality of technical approach
+4. Overall alignment with migrate.ai approach
+5. Evidence of automation and AI integration
 
-Be thorough and specific in your analysis."""),
-            ("human", """DOCUMENT CONTENT AND ANALYSIS:
+Please provide:
+1. Overall compliance score (0.0-1.0)
+2. Missing elements that should be addressed
+3. Compliance strengths identified
+4. Areas needing improvement
+5. Specific recommendations for better alignment
 
-Document Type: {document_type}
-Document Purpose: {document_purpose}
-
-Phase Evaluations Summary:
-{phase_evaluations}
-
-Key Themes: {key_themes}
-Migration Indicators: {migration_indicators}
-
-Full Content Sample:
-{content_sample}
-
-Please assess compliance with Modernize.AI specification and provide:
-
-1. Areas where the document is compliant
-2. Areas where the document is non-compliant
-3. Missing elements that should be present
-4. Overall compliance score (0.0-1.0)
-5. Specific red flags identified
-
-IMPORTANT: Respond with ONLY valid JSON in the exact format below. Do not include any markdown formatting, explanations, or additional text.
-
+Return your response as JSON with this structure:
 {{
-    "compliant_areas": ["area1", "area2"],
-    "non_compliant_areas": ["area1", "area2"],
-    "missing_elements": ["element1", "element2"],
-    "overall_compliance_score": 0.7,
-    "red_flags_identified": ["flag1", "flag2"],
-    "detailed_compliance_analysis": "comprehensive analysis"
-}}""")
+    "overall_compliance_score": <number between 0.0 and 1.0>,
+    "missing_elements": [<list of strings>],
+    "compliance_strengths": [<list of strings>],
+    "improvement_areas": [<list of strings>],
+    "recommendations": [<list of strings>]
+}}
+
+Please assess compliance with migrate.ai specification and provide:
+- Detailed analysis of alignment with core principles
+- Identification of any red flags present
+- Specific recommendations for improvement
+- Overall compliance assessment"""),
+            ("user", f"Evaluate this proposal content for migrate.ai specification compliance:\n\n{content}")
         ])
-    
-    def __call__(self, state: GraphState) -> Dict[str, Any]:
-        """Check specification compliance."""
+        
+        response = llm.invoke(prompt.format_messages())
+        
+        # Parse the JSON response
         try:
-            if not state.parsed_document:
-                return {"error": "No parsed document found in state"}
-            
-            doc = state.parsed_document
-            
-            # Prepare phase evaluations summary
-            phase_eval_summary = []
-            for eval in state.phase_evaluations:
-                phase_eval_summary.append(
-                    f"- {eval.phase.value}: Score {eval.score}/3, "
-                    f"Strengths: {', '.join(eval.strengths[:2])}, "
-                    f"Weaknesses: {', '.join(eval.weaknesses[:2])}"
-                )
-            
-            # Get LLM compliance analysis
-            response = self.llm.invoke(
-                self.prompt.format_messages(
-                    document_type=doc.document_type.value,
-                    document_purpose=doc.metadata.get("document_purpose", "Unknown"),
-                    phase_evaluations="\n".join(phase_eval_summary),
-                    key_themes=", ".join(doc.metadata.get("key_themes", [])),
-                    migration_indicators=", ".join(doc.metadata.get("migration_indicators", [])),
-                    content_sample=doc.content[:2000]
-                )
+            result = parse_llm_json_response(
+                response.content,
+                fallback_data={
+                    "overall_compliance_score": 0.5,
+                    "missing_elements": ["Could not parse compliance response"],
+                    "compliance_strengths": ["Content provided for evaluation"],
+                    "improvement_areas": ["Response parsing failed"],
+                    "recommendations": ["Please review the content format and try again"]
+                }
             )
             
-            # Parse LLM response
-            from ..utils.json_parser import parse_llm_json_response, create_compliance_fallback
-            
-            try:
-                analysis = parse_llm_json_response(response.content, create_compliance_fallback())
-            except ValueError:
-                # This shouldn't happen since we provide fallback data, but just in case
-                analysis = create_compliance_fallback()
-            
-            # Create SpecCompliance object
-            spec_compliance = SpecCompliance(
-                compliant_areas=analysis.get("compliant_areas", []),
-                non_compliant_areas=analysis.get("non_compliant_areas", []),
-                missing_elements=analysis.get("missing_elements", []),
-                overall_compliance_score=float(analysis.get("overall_compliance_score", 0.0))
+            return SpecCompliance(
+                overall_compliance_score=result.get("overall_compliance_score", 0.5),
+                missing_elements=result.get("missing_elements", []),
+                compliance_strengths=result.get("compliance_strengths", []),
+                improvement_areas=result.get("improvement_areas", []),
+                recommendations=result.get("recommendations", [])
             )
-            
-            return {
-                "spec_compliance": spec_compliance,
-                "red_flags_identified": analysis.get("red_flags_identified", []),
-                "detailed_analysis": analysis.get("detailed_compliance_analysis", "")
-            }
-            
         except Exception as e:
-            return {"error": f"Error in SpecChecker agent: {str(e)}"}
-
-
-def spec_checker_node(state: GraphState) -> Dict[str, Any]:
-    """LangGraph node function for specification compliance checking."""
-    from langchain_openai import ChatOpenAI
-    
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-    agent = SpecCheckerAgent(llm)
-    
-    result = agent(state)
-    
-    if "error" in result:
-        return {"error": result["error"]}
-    else:
-        updates = {"spec_compliance": result["spec_compliance"]}
-        
-        # Store additional analysis data if needed
-        if state.parsed_document:
-            # Create new metadata dict with additional data
-            new_metadata = state.parsed_document.metadata.copy()
-            new_metadata["red_flags"] = result.get("red_flags_identified", [])
-            new_metadata["compliance_analysis"] = result.get("detailed_analysis", "")
-            
-            # Create new ParsedDocument with updated metadata
-            from src.models.evaluation import ParsedDocument
-            updates["parsed_document"] = ParsedDocument(
-                content=state.parsed_document.content,
-                document_type=state.parsed_document.document_type,
-                sections=state.parsed_document.sections,
-                metadata=new_metadata
+            # Fallback if parsing fails
+            return SpecCompliance(
+                overall_compliance_score=0.5,
+                missing_elements=[f"Could not parse compliance response: {str(e)}"],
+                compliance_strengths=["Content provided for evaluation"],
+                improvement_areas=["Response parsing failed"],
+                recommendations=["Please review the content format and try again"]
             )
+    
+    def _format_principles(self, principles: list) -> str:
+        """Format core principles for the prompt."""
+        return "\n".join([f"- {principle}" for principle in principles])
+    
+    def _format_red_flags(self, red_flags: list) -> str:
+        """Format red flags for the prompt."""
+        return "\n".join([f"- {flag}" for flag in red_flags])
+
+
+# Initialize LLM
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+
+
+def spec_checker_node(state: Dict[str, Any]) -> Dict[str, Any]:
+    """LangGraph node function for specification checking."""
+    try:
+        checker = SpecChecker()
         
-        return updates 
+        # Get the document content
+        content = state.get("document_content", "")
+        phase_evaluations = state.get("phase_evaluations", [])
+        
+        if not content:
+            return {
+                "errors": ["No document content available for specification checking"]
+            }
+        
+        # Check compliance
+        compliance = checker.check_compliance(content, phase_evaluations)
+        
+        return {
+            "spec_compliance": compliance
+        }
+        
+    except Exception as e:
+        return {
+            "errors": [f"Specification checking failed: {str(e)}"]
+        } 

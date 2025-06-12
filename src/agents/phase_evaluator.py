@@ -9,153 +9,128 @@ from ..models.evaluation import GraphState, PhaseEvaluation, MigrationPhase, Pha
 from ..utils.json_parser import parse_llm_json_response, create_evaluation_fallback
 
 
-class PhaseEvaluatorAgent:
-    """Agent responsible for evaluating a specific migration phase against Modernize.AI specification."""
+class PhaseEvaluator:
+    """Evaluates a specific migration phase against the specification."""
     
-    def __init__(self, llm: ChatOpenAI, phase: MigrationPhase):
-        self.llm = llm
+    def __init__(self, phase: MigrationPhase):
         self.phase = phase
-        self.spec = self._load_specification()
-        self.prompt = self._create_prompt()
+        self.spec = self._load_spec()
     
-    def _load_specification(self) -> Dict[str, Any]:
-        """Load the Modernize.AI specification."""
+    def _load_spec(self) -> Dict[str, Any]:
+        """Load the migrate.ai specification."""
         spec_path = Path(__file__).parent.parent / "config" / "modernize_ai_spec.yaml"
         with open(spec_path, 'r') as f:
             return yaml.safe_load(f)
     
-    def _create_prompt(self) -> ChatPromptTemplate:
-        """Create evaluation prompt for the specific phase."""
-        phase_spec = self.spec["modernize_ai_specification"]["phases"][self.phase.value]
+    def evaluate(self, content: str, context: Dict[str, Any] = None) -> PhaseEvaluation:
+        """Evaluate the phase content against the specification."""
         
-        return ChatPromptTemplate.from_messages([
-            ("system", f"""You are a Modernize.AI evaluation expert. Your task is to evaluate the {self.phase.value.upper()} phase content against the Modernize.AI Agent-Led Migration Specification.
+        phase_spec = self.spec["migrate_ai_specification"]["phases"][self.phase.value]
+        
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", f"""You are a migrate.ai evaluation expert. Your task is to evaluate the {self.phase.value.upper()} phase content against the migrate.ai Agent-Led Migration Specification.
 
-PHASE SPECIFICATION:
-{yaml.dump(phase_spec, default_flow_style=False)}
+Phase: {phase_spec['name']}
+Description: {phase_spec['description']}
 
-SCORING RUBRIC:
-0: Not addressed or completely missing
-1: Partially addressed with significant gaps
-2: Adequately addressed with minor gaps  
-3: Fully addressed and well-implemented
+Workstreams to evaluate:
+{self._format_workstreams(phase_spec['workstreams'])}
 
-Evaluate based on:
-1. Presence of required elements
+Evaluation criteria:
+1. Completeness of workstream coverage
 2. Quality of implementation approach
-3. Alignment with Modernize.AI principles
-4. Evidence of GenAI/automation usage
-5. Completeness of the approach
+3. Alignment with migrate.ai principles
+4. Technical feasibility and best practices
+5. Risk management and mitigation strategies
 
-Be strict but fair in your evaluation."""),
-            ("human", """PHASE CONTENT TO EVALUATE:
-Relevant Content: {relevant_content}
+Please provide:
+1. Overall score (0-3): 0=Poor, 1=Basic, 2=Good, 3=Excellent
+2. Strengths: What is done well
+3. Weaknesses: What needs improvement
+4. Evidence: Specific examples from the content
+5. Recommendations: Specific improvements needed
 
-Key Points: {key_points}
-
-Confidence Score: {confidence_score}
-
-Please evaluate this {phase} phase content and provide:
-
-1. Score (0-3) based on the rubric
-2. Criteria assessment for each evaluation criterion
-3. Strengths identified in the content
-4. Weaknesses or gaps identified
-5. Specific evidence supporting your evaluation
-
-Respond in JSON format:
+Return your response as JSON with this structure:
 {{
-    "score": 0-3,
-    "criteria_met": {{
-        "criterion_name": true/false,
-        ...
-    }},
-    "strengths": ["strength1", "strength2"],
-    "weaknesses": ["weakness1", "weakness2"],
-    "evidence": ["evidence1", "evidence2"],
-    "detailed_analysis": "comprehensive analysis of the phase content"
-}}""")
+    "score": <number>,
+    "strengths": [<list of strings>],
+    "weaknesses": [<list of strings>],
+    "evidence": [<list of strings>],
+    "recommendations": [<list of strings>]
+}}"""),
+            ("user", f"Evaluate this {self.phase.value} phase content:\n\n{content}")
         ])
-    
-    def __call__(self, state: GraphState, phase: MigrationPhase) -> Dict[str, Any]:
-        """Evaluate a specific migration phase."""
+        
+        response = llm.invoke(prompt.format_messages())
+        
+        # Parse the JSON response
         try:
-            # Add small delay to avoid rate limiting
-            time.sleep(1)
+            import json
+            result = json.loads(response.content)
             
-            # Find the relevant phase content
-            phase_content = None
-            for pc in state.phase_contents:
-                if pc.phase == phase:
-                    phase_content = pc
-                    break
-            
-            if not phase_content:
-                return {"error": f"No content found for phase {phase.value}"}
-            
-            if phase_content.phase != self.phase:
-                return {"error": f"Phase mismatch: expected {self.phase}, got {phase_content.phase}"}
-            
-            # Format key points for display
-            key_points_str = "\n".join([f"- {point}" for point in phase_content.key_points])
-            
-            # Get LLM evaluation
-            response = self.llm.invoke(
-                self.prompt.format_messages(
-                    relevant_content=phase_content.relevant_content,
-                    key_points=key_points_str,
-                    confidence_score=phase_content.confidence_score,
-                    phase=self.phase.value
-                )
-            )
-            
-            # Parse LLM response with fallback
-            try:
-                evaluation = parse_llm_json_response(
-                    response.content, 
-                    fallback_data=create_evaluation_fallback(self.phase.value)
-                )
-            except Exception as e:
-                evaluation = create_evaluation_fallback(self.phase.value)
-            
-            # Create PhaseEvaluation object
-            phase_evaluation = PhaseEvaluation(
+            return PhaseEvaluation(
                 phase=self.phase,
-                score=int(evaluation.get("score", 0)),
-                criteria_met=evaluation.get("criteria_met", {}),
-                strengths=evaluation.get("strengths", []),
-                weaknesses=evaluation.get("weaknesses", []),
-                evidence=evaluation.get("evidence", [])
+                score=result.get("score", 0),
+                strengths=result.get("strengths", []),
+                weaknesses=result.get("weaknesses", []),
+                evidence=result.get("evidence", []),
+                recommendations=result.get("recommendations", [])
             )
-            
-            return {
-                "phase_evaluation": phase_evaluation,
-                "detailed_analysis": evaluation.get("detailed_analysis", "")
-            }
-            
-        except Exception as e:
-            return {"error": f"Error evaluating {self.phase.value} phase: {str(e)}"}
+        except (json.JSONDecodeError, KeyError) as e:
+            # Fallback if JSON parsing fails
+            return PhaseEvaluation(
+                phase=self.phase,
+                score=1,
+                strengths=["Content provided for evaluation"],
+                weaknesses=[f"Could not parse evaluation response: {str(e)}"],
+                evidence=["Response parsing failed"],
+                recommendations=["Please review the content format and try again"]
+            )
+    
+    def _format_workstreams(self, workstreams: list) -> str:
+        """Format workstreams for the prompt."""
+        formatted = []
+        for ws in workstreams:
+            formatted.append(f"- {ws['name']}: {ws['description']}")
+        return "\n".join(formatted)
+
+
+# Initialize LLM
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 
 def create_phase_evaluator_node(phase: MigrationPhase):
-    """Create a phase evaluator node for a specific migration phase."""
+    """Create a phase evaluator node for the given phase."""
+    evaluator = PhaseEvaluator(phase)
     
-    def phase_evaluator_node(state: GraphState) -> Dict[str, Any]:
-        """LangGraph node function for phase evaluation."""
-        from langchain_openai import ChatOpenAI
-        
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-        agent = PhaseEvaluatorAgent(llm, phase)
-        
-        result = agent(state, phase)
-        
-        if "error" in result:
-            return {"error": result["error"]}
-        else:
-            # Return the evaluation to be added to the state
-            return {"phase_evaluations": [result["phase_evaluation"]]}
+    def evaluate_phase(state: Dict[str, Any]) -> Dict[str, Any]:
+        """Evaluate the specific phase."""
+        try:
+            # Get the content for this phase
+            phase_content = state.get("phase_content", {}).get(phase.value, "")
+            
+            if not phase_content:
+                return {
+                    "errors": [f"No content found for {phase.value} phase"]
+                }
+            
+            # Evaluate the phase
+            evaluation = evaluator.evaluate(phase_content)
+            
+            # Store the evaluation
+            phase_evaluations = state.get("phase_evaluations", [])
+            phase_evaluations.append(evaluation)
+            
+            return {
+                "phase_evaluations": phase_evaluations
+            }
+            
+        except Exception as e:
+            return {
+                "errors": [f"Phase evaluation failed for {phase.value}: {str(e)}"]
+            }
     
-    return phase_evaluator_node
+    return evaluate_phase
 
 
 # Create individual node functions for each stage

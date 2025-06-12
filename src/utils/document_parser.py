@@ -5,6 +5,7 @@ from pathlib import Path
 
 import PyPDF2
 from docx import Document
+import pandas as pd
 
 from ..models.evaluation import DocumentType, ParsedDocument
 
@@ -24,6 +25,8 @@ class DocumentParser:
             return DocumentParser._parse_docx(file_content, filename)
         elif extension in ['.txt', '.md']:
             return DocumentParser._parse_text(file_content, filename)
+        elif extension in ['.xlsx', '.xls']:
+            return DocumentParser._parse_excel(file_content, filename)
         else:
             raise ValueError(f"Unsupported file format: {extension}")
     
@@ -115,6 +118,100 @@ class DocumentParser:
             )
         except Exception as e:
             raise ValueError(f"Error parsing text file: {str(e)}")
+    
+    @staticmethod
+    def _parse_excel(file_content: bytes, filename: str) -> ParsedDocument:
+        """Parse Excel document."""
+        try:
+            excel_file = io.BytesIO(file_content)
+            
+            # Determine the appropriate engine based on file extension
+            file_path = Path(filename)
+            extension = file_path.suffix.lower()
+            
+            if extension == '.xlsx':
+                engine = 'openpyxl'
+            elif extension == '.xls':
+                engine = 'xlrd'
+            else:
+                # Default to openpyxl for unknown extensions
+                engine = 'openpyxl'
+            
+            # Read all sheets from the Excel file
+            excel_data = pd.read_excel(excel_file, sheet_name=None, engine=engine)
+            
+            content = ""
+            sheet_info = {}
+            
+            for sheet_name, df in excel_data.items():
+                # Convert DataFrame to text representation
+                sheet_content = f"\n=== Sheet: {sheet_name} ===\n"
+                
+                # Add column headers
+                if not df.empty:
+                    headers = " | ".join(str(col) for col in df.columns)
+                    sheet_content += f"Columns: {headers}\n\n"
+                    
+                    # Add data rows (limit to first 100 rows to avoid overwhelming content)
+                    for idx, row in df.head(100).iterrows():
+                        row_data = " | ".join(str(val) if pd.notna(val) else "" for val in row.values)
+                        sheet_content += f"{row_data}\n"
+                    
+                    if len(df) > 100:
+                        sheet_content += f"\n... and {len(df) - 100} more rows\n"
+                else:
+                    sheet_content += "Empty sheet\n"
+                
+                content += sheet_content
+                sheet_info[sheet_name] = {
+                    "rows": len(df),
+                    "columns": len(df.columns) if not df.empty else 0,
+                    "column_names": list(df.columns) if not df.empty else []
+                }
+            
+            sections = DocumentParser._extract_excel_sections(excel_data)
+            document_type = DocumentType.OTHER  # Excel files are typically data/discovery documents
+            
+            return ParsedDocument(
+                content=content,
+                document_type=document_type,
+                sections=sections,
+                metadata={
+                    "filename": filename,
+                    "format": "excel",
+                    "engine": engine,
+                    "sheets": list(excel_data.keys()),
+                    "sheet_info": sheet_info,
+                    "total_sheets": len(excel_data)
+                }
+            )
+        except Exception as e:
+            raise ValueError(f"Error parsing Excel file: {str(e)}")
+    
+    @staticmethod
+    def _extract_excel_sections(excel_data: Dict[str, pd.DataFrame]) -> Dict[str, str]:
+        """Extract sections from Excel data based on sheet names and content."""
+        sections = {}
+        
+        for sheet_name, df in excel_data.items():
+            if not df.empty:
+                # Create a summary of the sheet content
+                summary = f"Sheet '{sheet_name}' contains {len(df)} rows and {len(df.columns)} columns.\n"
+                
+                if len(df.columns) > 0:
+                    summary += f"Columns: {', '.join(str(col) for col in df.columns)}\n"
+                
+                # Add sample data if available
+                if len(df) > 0:
+                    summary += "\nSample data:\n"
+                    sample_rows = min(3, len(df))
+                    for idx, row in df.head(sample_rows).iterrows():
+                        row_data = " | ".join(str(val) if pd.notna(val) else "N/A" for val in row.values)
+                        summary += f"  {row_data}\n"
+                
+                sections[sheet_name.lower().replace(' ', '_')] = summary
+        
+        return sections
     
     @staticmethod
     def _extract_sections(content: str) -> Dict[str, str]:
