@@ -19,7 +19,7 @@ llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 def classify_migration_strategies(state: ProposalState) -> Dict[str, Any]:
     """
-    Classify migration strategies using 6R framework with modernization bias.
+    Classify migration strategies for each workload using the 6 R's framework.
     
     Args:
         state: Current proposal generation state
@@ -33,18 +33,30 @@ def classify_migration_strategies(state: ProposalState) -> Dict[str, Any]:
         if not classified_workloads:
             return {"errors": ["No classified workloads available for strategy classification"]}
         
-        # Classify strategies for each workload
+        # Classify strategy for each workload
         strategy_classifications = []
         for workload in classified_workloads:
-            strategy = _classify_single_strategy(workload)
-            strategy_classifications.append(strategy)
+            try:
+                strategy = _classify_single_strategy(workload)
+                strategy_classifications.append(strategy)
+            except Exception as e:
+                # If LLM classification fails, use fallback
+                if "rate_limit" in str(e).lower() or "429" in str(e):
+                    print(f"Rate limit hit, using fallback strategy for {workload.get('name', 'Unknown')}")
+                    strategy = _create_fallback_strategy(workload)
+                    strategy_classifications.append(strategy)
+                else:
+                    raise e
         
-        # Generate strategy summary
-        strategy_summary = _generate_strategy_summary(strategy_classifications)
+        # Convert to dictionary format expected by other agents
+        migration_strategies = {}
+        for strategy in strategy_classifications:
+            app_name = strategy.get("application_name", "Unknown")
+            migration_strategies[app_name] = strategy.get("recommended_strategy", "replatform")
         
         return {
-            "migration_strategies": strategy_classifications,
-            "strategy_summary": strategy_summary
+            "migration_strategies": migration_strategies,
+            "strategy_summary": _generate_strategy_summary(strategy_classifications)
         }
         
     except Exception as e:
@@ -62,7 +74,7 @@ Analyze the provided workload and recommend the optimal migration strategy using
 
 **6R Migration Strategies:**
 1. **Rehost** (Lift & Shift): Move as-is to cloud with minimal changes
-2. **Replatform** (Lift & Reshape): Minor optimizations during migration
+    2. **Replatform** (Lift & Reshape): Minor optimisations during migration
 3. **Refactor** (Re-architect): Significant code changes to leverage cloud-native features
 4. **Repurchase** (Replace): Move to SaaS solution
 5. **Retire**: Decommission if no longer needed
@@ -83,7 +95,7 @@ Analyze the provided workload and recommend the optimal migration strategy using
 - Long-term strategic value
 
 Return JSON format:
-{
+{{
   "application_name": "App Name",
   "recommended_strategy": "rehost|replatform|refactor|repurchase|retire|retain",
   "modernization_opportunities": ["opportunity1", "opportunity2"],
@@ -92,7 +104,7 @@ Return JSON format:
   "risk_level": "Low|Medium|High",
   "prerequisites": ["prereq1", "prereq2"],
   "success_metrics": ["metric1", "metric2"]
-}"""),
+}}"""),
         ("user", "Classify the migration strategy for this workload:\n\n{workload}")
     ])
     
@@ -113,6 +125,76 @@ Return JSON format:
     )
     
     return strategy
+
+
+def _create_fallback_strategy(workload: Dict[str, Any]) -> Dict[str, Any]:
+    """Create a fallback migration strategy when LLM is unavailable."""
+    
+    app_name = workload.get("name", "Unknown Application")
+    complexity = workload.get("complexity", "Medium").lower()
+    migration_readiness = workload.get("migration_readiness", "Needs Assessment").lower()
+    business_criticality = workload.get("business_criticality", "Medium").lower()
+    tech_stack = workload.get("technology_stack", [])
+    
+    # Apply Modernize.AI principles - prefer modernization over lift-and-shift
+    if complexity == "low" and "ready" in migration_readiness:
+        if any("docker" in tech.lower() or "container" in tech.lower() for tech in tech_stack):
+            # Already containerized - good for refactor
+            recommended_strategy = "refactor"
+            modernization_opportunities = ["Container orchestration", "Cloud-native patterns", "Microservices"]
+            effort_weeks = 6
+            risk_level = "Medium"
+        else:
+            # Simple workload - replatform to get cloud benefits
+            recommended_strategy = "replatform"
+            modernization_opportunities = ["Managed services", "Auto-scaling", "Cloud monitoring"]
+            effort_weeks = 4
+            risk_level = "Low"
+    
+    elif complexity == "medium":
+        if "critical" in business_criticality:
+            # Critical medium complexity - careful replatform
+            recommended_strategy = "replatform"
+            modernization_opportunities = ["Managed databases", "Load balancing", "Backup automation"]
+            effort_weeks = 8
+            risk_level = "Medium"
+        else:
+            # Medium complexity - good candidate for refactor
+            recommended_strategy = "refactor"
+            modernization_opportunities = ["API modernization", "Database optimization", "Security hardening"]
+            effort_weeks = 10
+            risk_level = "Medium"
+    
+    else:  # High complexity
+        if "legacy" in app_name.lower() or any("2012" in tech for tech in tech_stack):
+            # Legacy system - consider repurchase or major refactor
+            if "critical" in business_criticality:
+                recommended_strategy = "refactor"
+                modernization_opportunities = ["Complete modernization", "Cloud-native rebuild", "API-first design"]
+                effort_weeks = 16
+                risk_level = "High"
+            else:
+                recommended_strategy = "repurchase"
+                modernization_opportunities = ["SaaS replacement", "Modern alternatives"]
+                effort_weeks = 12
+                risk_level = "Medium"
+        else:
+            # Complex but modern - replatform with enhancements
+            recommended_strategy = "replatform"
+            modernization_opportunities = ["Performance optimization", "Scalability improvements", "Cost optimization"]
+            effort_weeks = 12
+            risk_level = "High"
+    
+    return {
+        "application_name": app_name,
+        "recommended_strategy": recommended_strategy,
+        "modernization_opportunities": modernization_opportunities,
+        "rationale": f"Fallback strategy based on {complexity} complexity and {business_criticality} criticality",
+        "effort_estimate_weeks": effort_weeks,
+        "risk_level": risk_level,
+        "prerequisites": ["Infrastructure assessment", "Dependency mapping"],
+        "success_metrics": ["Migration completed", "Performance maintained", "Cost targets met"]
+    }
 
 
 def _generate_strategy_summary(strategy_classifications: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -353,7 +435,7 @@ def _get_recommended_approach(percentages: Dict[str, float]) -> str:
     if refactor_pct > 40:
         return "Transformation-focused: High modernization with significant cloud-native adoption"
     elif replatform_pct + refactor_pct > 60:
-        return "Modernization-focused: Balanced approach with substantial cloud optimization"
+        return "Modernisation-focused: Balanced approach with substantial cloud optimisation"
     elif rehost_pct > 60:
         return "Migration-focused: Rapid cloud adoption with future modernization phases"
     else:

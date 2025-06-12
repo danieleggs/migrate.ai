@@ -1,168 +1,131 @@
-from typing import Dict, Any, List
+"""
+Recommendations Generator Agent
+
+Agent responsible for generating actionable recommendations to improve migrate.ai alignment.
+"""
+
+from typing import Dict, Any
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 
-from ..models.evaluation import GraphState, Recommendation, MigrationPhase
-from ..utils.json_parser import parse_llm_json_response, create_recommendations_fallback
+from ..models.evaluation import Recommendations
+from ..utils.json_parser import parse_llm_json_response
 
+prompt = ChatPromptTemplate.from_messages([
+    ("system", """You are a migrate.ai consultant expert. Your task is to generate specific, actionable recommendations to improve the proposal's alignment with migrate.ai Agent-Led Migration Specification.
 
-class RecommendationsGeneratorAgent:
-    """Agent responsible for generating actionable recommendations to improve Modernize.AI alignment."""
-    
-    def __init__(self, llm: ChatOpenAI):
-        self.llm = llm
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are a Modernize.AI consultant expert. Your task is to generate specific, actionable recommendations to improve the proposal's alignment with Modernize.AI Agent-Led Migration Specification.
+Focus on providing recommendations that address:
+1. Identified gaps and weaknesses
+2. Enhancing compliance with migrate.ai principles
+3. Improving technical approach and implementation
+4. Strengthening risk management and mitigation
+5. Optimising automation and AI integration
 
-Focus on:
-1. Addressing identified gaps and weaknesses
-2. Enhancing compliance with Modernize.AI principles
-3. Improving phase-specific approaches
-4. Adding missing GenAI/automation elements
-5. Strengthening risk mitigation and fallback planning
-
-Prioritize recommendations by:
-- CRITICAL: Essential for project success and Modernize.AI alignment
-- HIGH: Important improvements that significantly enhance alignment
-- MEDIUM: Valuable improvements that strengthen the approach
-- LOW: Nice-to-have improvements for optimization
-
-Make recommendations specific, actionable, and implementable."""),
-            ("human", """EVALUATION CONTEXT:
-{evaluation_context}
-
-IDENTIFIED GAPS:
-{gaps}
-
-SPEC COMPLIANCE STATUS:
-{compliance_status}
-
-Please generate actionable recommendations to improve alignment with Modernize.AI specification.
-
-Focus on:
-1. Addressing identified gaps in the three migration stages
-2. Enhancing GenAI and automation usage
-3. Strengthening dual-track migration approach
-4. Improving team capability development
-5. Enhancing cost optimisation strategies
-6. Strengthening security and compliance measures
+Categorise recommendations by priority:
+- CRITICAL: Essential for project success and migrate.ai alignment
+- HIGH: Important improvements that significantly enhance the proposal
+- MEDIUM: Beneficial enhancements that add value
+- LOW: Nice-to-have improvements for completeness
 
 For each recommendation, provide:
-- Clear, actionable title
-- Detailed description with specific steps
-- Priority level (low/medium/high/critical)
-- Associated migration stage (if applicable)
-- Implementation effort estimate (low/medium/high)
+- Clear, actionable description
+- Rationale explaining why it's important
+- Implementation guidance or next steps
+- Expected impact on proposal quality
 
-Respond in JSON format:
+Return your response as JSON with this structure:
 {{
-    "recommendations": [
+    "critical_recommendations": [
         {{
-            "title": "recommendation title",
-            "description": "detailed actionable description",
-            "priority": "low|medium|high|critical",
-            "phase": "strategise_and_plan|migrate_and_modernise|manage_and_optimise|null",
-            "implementation_effort": "low|medium|high"
+            "description": "specific actionable recommendation",
+            "rationale": "why this is important",
+            "implementation": "how to implement this",
+            "impact": "expected improvement"
         }}
     ],
-    "summary": "overall recommendations summary"
-}}""")
-        ])
-    
-    def __call__(self, state: GraphState) -> Dict[str, Any]:
-        """Generate recommendations for improvement."""
-        try:
-            if not state.gaps or not state.spec_compliance:
-                return {"error": "Missing gap analysis or compliance data for recommendations"}
-            
-            doc = state.parsed_document
-            
-            # Prepare phase evaluations summary
-            phase_eval_summary = []
-            for eval in state.phase_evaluations:
-                phase_eval_summary.append(
-                    f"- {eval.phase.value.upper()}: Score {eval.score}/3\n"
-                    f"  Key Weaknesses: {', '.join(eval.weaknesses[:3])}"
-                )
-            
-            # Prepare gaps summary
-            gaps_summary = []
-            for gap in state.gaps:
-                phase_str = gap.phase.value if gap.phase else "general"
-                gaps_summary.append(
-                    f"- {gap.area} ({gap.severity}, {phase_str}): {gap.description}"
-                )
-            
-            # Get priority gaps from metadata
-            priority_gaps = doc.metadata.get("priority_gaps", []) if doc else []
-            
-            # Get LLM recommendations
-            response = self.llm.invoke(
-                self.prompt.format_messages(
-                    evaluation_context="\n".join(phase_eval_summary),
-                    gaps="\n".join(gaps_summary[:10]),  # Limit to top 10 gaps
-                    compliance_status=", ".join(state.spec_compliance.non_compliant_areas) + " (Non-Compliant Areas), " + ", ".join(state.spec_compliance.missing_elements) + " (Missing Elements), " + f"Overall Compliance Score: {state.spec_compliance.overall_compliance_score}"
-                )
-            )
-            
-            # Parse LLM response
-            try:
-                analysis = parse_llm_json_response(response.content, create_recommendations_fallback())
-            except ValueError:
-                analysis = create_recommendations_fallback()
-            
-            # Convert to Recommendation objects
-            recommendations = []
-            for rec_data in analysis.get("recommendations", []):
-                try:
-                    recommendation = Recommendation(
-                        title=rec_data["title"],
-                        description=rec_data["description"],
-                        priority=rec_data["priority"],
-                        phase=rec_data["phase"],
-                        implementation_effort=rec_data["implementation_effort"]
-                    )
-                    recommendations.append(recommendation)
-                except (KeyError, ValueError) as e:
-                    # Skip invalid recommendation entries
-                    continue
-            
-            return {
-                "recommendations": recommendations,
-                "summary": analysis.get("summary", "No summary provided")
-            }
-            
-        except Exception as e:
-            return {"error": f"Error in RecommendationsGenerator agent: {str(e)}"}
+    "high_priority_recommendations": [...],
+    "medium_priority_recommendations": [...],
+    "low_priority_recommendations": [...]
+}}"""),
+    ("user", """Based on the evaluation results, generate specific recommendations:
+
+PHASE EVALUATIONS:
+{phase_evaluations}
+
+SPECIFICATION COMPLIANCE:
+{spec_compliance}
+
+GAP ANALYSIS:
+{gap_analysis}
+
+Please generate actionable recommendations to improve alignment with migrate.ai specification.""")
+])
+
+# Initialize LLM
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 
-def recommendations_generator_node(state: GraphState) -> Dict[str, Any]:
+def recommendations_generator_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """LangGraph node function for generating recommendations."""
-    from langchain_openai import ChatOpenAI
-    
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-    agent = RecommendationsGeneratorAgent(llm)
-    
-    result = agent(state)
-    
-    if "error" in result:
-        return {"error": result["error"]}
-    else:
-        updates = {"recommendations": result["recommendations"]}
+    try:
+        # Get evaluation results
+        phase_evaluations = state.get("phase_evaluations", [])
+        spec_compliance = state.get("spec_compliance")
+        gap_analysis = state.get("gap_analysis")
         
-        # Store additional analysis data if needed
-        if state.parsed_document:
-            # Create new metadata dict with additional data
-            new_metadata = state.parsed_document.metadata.copy()
-            new_metadata["summary"] = result.get("summary", "")
-            
-            # Create new ParsedDocument with updated metadata
-            from src.models.evaluation import ParsedDocument
-            updates["parsed_document"] = ParsedDocument(
-                content=state.parsed_document.content,
-                document_type=state.parsed_document.document_type,
-                sections=state.parsed_document.sections,
-                metadata=new_metadata
+        # Format phase evaluations
+        phase_eval_text = ""
+        for eval in phase_evaluations:
+            phase_eval_text += f"\n{eval.phase.value.upper()} Phase (Score: {eval.score}/3):\n"
+            phase_eval_text += f"Weaknesses: {', '.join(eval.weaknesses)}\n"
+            phase_eval_text += f"Recommendations: {', '.join(eval.recommendations)}\n"
+        
+        # Format spec compliance
+        spec_text = ""
+        if spec_compliance:
+            spec_text = f"Overall Compliance: {spec_compliance.overall_compliance_score:.2f}\n"
+            spec_text += f"Missing Elements: {', '.join(spec_compliance.missing_elements)}\n"
+            spec_text += f"Recommendations: {', '.join(spec_compliance.recommendations)}\n"
+        
+        # Format gap analysis
+        gap_text = ""
+        if gap_analysis:
+            gap_text += f"Critical Gaps: {len(gap_analysis.critical_gaps)}\n"
+            gap_text += f"High Priority Gaps: {len(gap_analysis.high_priority_gaps)}\n"
+            gap_text += f"Medium Priority Gaps: {len(gap_analysis.medium_priority_gaps)}\n"
+        
+        # Get LLM recommendations
+        response = llm.invoke(
+            prompt.format_messages(
+                phase_evaluations=phase_eval_text,
+                spec_compliance=spec_text,
+                gap_analysis=gap_text
             )
+        )
         
-        return updates 
+        # Parse response
+        result = parse_llm_json_response(
+            response.content,
+            fallback_data={
+                "critical_recommendations": [],
+                "high_priority_recommendations": [],
+                "medium_priority_recommendations": [],
+                "low_priority_recommendations": []
+            }
+        )
+        
+        recommendations = Recommendations(
+            critical_recommendations=result.get("critical_recommendations", []),
+            high_priority_recommendations=result.get("high_priority_recommendations", []),
+            medium_priority_recommendations=result.get("medium_priority_recommendations", []),
+            low_priority_recommendations=result.get("low_priority_recommendations", [])
+        )
+        
+        return {
+            "recommendations": recommendations
+        }
+        
+    except Exception as e:
+        return {
+            "errors": [f"Recommendations generation failed: {str(e)}"]
+        } 

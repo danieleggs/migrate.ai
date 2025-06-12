@@ -1,5 +1,10 @@
 # Agents package
 
+# Load environment variables before any agent imports
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 # Document evaluator agents
 from .parse_input_doc import parse_input_doc_node
 from .extract_intent_and_phases import extract_intent_and_phases_node

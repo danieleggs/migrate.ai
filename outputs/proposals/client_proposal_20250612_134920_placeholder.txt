@@ -1,0 +1,9 @@
+PDF conversion placeholder
+
+# Migration Proposal: Migration Project - Zooropra_Inventory_Data.xlsx
+
+**Client:** Client
+**Generated:** 2025-06-12 13:49:20
+
+---
+

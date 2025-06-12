@@ -1,20 +1,23 @@
-modernize_ai_specification:
-  title: Modernize.AI – Agent-Led Migration Specification
+migrate_ai_specification:
+  title: migrate.ai – Agent-Led Migration Specification
+  version: "1.0"
+  description: |
+    This specification defines the principles and validation points used to assess whether a proposed migration aligns with the migrate.ai
+    Agent-Led Migration methodology. It focuses on three key phases: Strategise & Plan, Migrate & Modernise, and Manage & Optimise.
+    
+    The specification emphasises:
+    - GenAI-assisted automation throughout the migration lifecycle
+    - Dual-track agile delivery (Discovery Track + Delivery Track)
+    - Incremental, risk-managed approach
+    - Business value realisation at each phase
 
   owner: Dan Eggs
   domain: Cloud Migration & Modernisation
-  version: 3.0
   last_updated: 2025-01-20
-
-  description: >
-    This specification defines the principles and validation points used to assess whether a proposed migration aligns with the Modernize.AI 
-    framework. It prioritises fast, GenAI-assisted, dual-track migrations over long-running, big-bang programmes, ensuring every stage leverages 
-    automation, LLMs, and platform-agnostic workflows. It is used in pre-sales, planning, and delivery QA across both AWS and Azure environments.
-    The framework follows a 3-stage approach aligned with AWS and Azure migration best practices.
 
   goals:
     - Execute rapid assessment and strategic planning using agent-led activities
-    - Implement migration using dual-track waves: lift-and-shift and minimum viable refactor
+    - Implement migration using dual-track agile delivery: Discovery Track investigating feasibility, Delivery Track executing validated increments
     - Apply GenAI tools and agent workflows across all stages
     - Support secure-by-default, policy-aware architecture patterns on both Azure and AWS
     - Equip clients to sustain modernisation with platform-agnostic IDPs and AI assistants
@@ -54,8 +57,8 @@ modernize_ai_specification:
           description: Design target architecture and detailed migration plans
           implementation: >
             Generate secure-by-default architecture blueprints using IaC copilots.
-            Create detailed wave plans with dual-track approach (rehost vs refactor).
-            Establish governance, security, and compliance frameworks.
+            Create detailed wave plans using dual-track agile delivery methodology.
+            Establish governance, security, and compliance frameworks with continuous stakeholder collaboration.
           
         - name: Capability and Team Enablement
           description: Prepare teams and establish foundational capabilities
@@ -83,6 +86,8 @@ modernize_ai_specification:
             Use GitHub Copilot, Amazon Q Code Transformation, or Azure AI for code modernisation.
             Target containerisation, microservices, and cloud-native patterns where appropriate.
             Implement automated testing and validation throughout the process.
+            Follow dual-track methodology with Discovery Track investigating feasibility and 
+            Delivery Track executing validated migration increments.
           
         - name: Data Migration and Synchronisation
           description: Migrate and modernise data platforms with minimal downtime
@@ -169,7 +174,7 @@ modernize_ai_specification:
         description: "Technical architecture and migration planning"
         indicators:
           - "Secure-by-default architecture"
-          - "Dual-track migration approach"
+          - "Dual-track agile delivery approach"
           - "IaC and automation strategy"
           - "Governance and compliance framework"
       
@@ -293,7 +298,7 @@ success_criteria:
   - Strategic planning completed with comprehensive AI-enhanced assessment
   - Migration executed using automated tools with minimal manual intervention
   - All stages include AI/GenAI utilisation for enhanced outcomes
-  - Dual-track approach clearly defined and implemented
+  - Dual-track agile delivery approach clearly defined and implemented
   - Comprehensive operational framework established post-migration
   - Cost optimisation and FinOps practices implemented
   - Security and compliance continuously monitored and maintained

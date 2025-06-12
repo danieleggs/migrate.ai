@@ -1,38 +1,44 @@
-# Pre-sales Evaluator
+# migrate.ai Pre-Sales Evaluator
 
-An AI-powered document evaluation and migration proposal generation system that provides comprehensive analysis and planning for cloud migration projects.
+A comprehensive document evaluation system designed to assess migration proposals and statements of work against migrate.ai's Agent-Led Migration Specification. Built with LangGraph orchestration and Streamlit interface.
 
-## 🚀 Features
+## Features
 
-### Document Evaluation
-- **Intelligent Document Parsing**: Supports PDF, DOCX, and text files
-- **Smart Phase Routing**: Only evaluates relevant migration phases based on content
-- **Comprehensive Analysis**: Spec compliance, gap analysis, and recommendations
-- **Multiple Evaluation Types**: Migration Proposals and SOW Framework evaluation
+- **Migration Proposal Analysis**: Evaluate proposals against migrate.ai Agent-Led Migration Specification
+- **Statement of Work Evaluation**: Framework for SOW assessment (implementation in progress)
+- **Migration Proposal Generator**: Generate comprehensive migration proposals from discovery data
+- **Multi-Agent Architecture**: LangGraph-orchestrated evaluation workflow
+- **Interactive Interface**: Streamlit-based web application
+- **Comprehensive Reporting**: Detailed analysis with scoring, gaps, and recommendations
 
-### Migration Proposal Generation
-- **Discovery Data Processing**: Analyze and classify applications from discovery inputs
-- **6R Strategy Classification**: Intelligent migration strategy recommendations
-- **Wave Planning**: Dual-track methodology for migration sequencing
-- **Architecture Recommendations**: Cloud-native architecture guidance
-- **GenAI Tool Planning**: AI-powered automation opportunities
-- **Effort Estimation**: Sprint-based project planning
+## Architecture
 
-### Modern Interface
-- **Clean Streamlit UI**: Intuitive web interface with real-time progress tracking
-- **Multiple Export Formats**: Markdown, YAML, and JSON outputs
-- **Comprehensive Visualizations**: Charts and graphs for analysis results
-- **Robust Error Handling**: Graceful fallbacks for LLM parsing issues
+The system uses a multi-agent architecture orchestrated by LangGraph:
 
-## 🏗️ Architecture
+### Core Agents
 
-- **LangGraph**: Orchestrates both evaluation and generation workflows
-- **OpenAI GPT-4o-mini**: Fast, cost-effective LLM for analysis
-- **Streamlit**: Web interface with multi-page navigation
-- **Pydantic**: Data validation and modeling
-- **Separated Agent Architecture**: Individual agents for maintainability
+1. **Document Parser**: Extract and structure content from uploaded documents
+2. **Phase Evaluators**: Assess each migration phase (Strategise & Plan, Migrate & Modernise, Manage & Optimise)
+3. **Gap Highlighter**: Identify weaknesses and missing elements
+4. **Recommendations Generator**: Provide actionable improvement suggestions
+5. **Spec Checker**: Validate against migrate.ai specification
+6. **Scoring Agent**: Calculate final evaluation scores
 
-## 🔧 Local Setup
+### Workflow
+
+```
+Document Upload → Parse Content → Phase Evaluation → Gap Analysis → 
+Recommendations → Spec Compliance → Final Scoring → Report Generation
+```
+
+## Installation
+
+### Prerequisites
+
+- Python 3.9+
+- OpenAI API key
+
+### Setup
 
 1. **Clone the repository**:
    ```bash
@@ -40,142 +46,144 @@ An AI-powered document evaluation and migration proposal generation system that 
    cd pre-sales-evaluator
    ```
 
-2. **Install dependencies**:
+2. **Create virtual environment**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Set environment variables**:
+4. **Configure environment**:
    ```bash
-   export OPENAI_API_KEY="your-openai-api-key-here"
+   cp .env.example .env
+   # Edit .env and add your OpenAI API key
    ```
 
-4. **Run the application**:
+5. **Run the application**:
    ```bash
    streamlit run app.py
    ```
 
-## ☁️ Cloud Deployment Options
+## Usage
 
-### 1. AWS App Runner (Recommended)
-- **Pros**: Highly scalable, enterprise-grade, auto-scaling
-- **Setup**: 20 minutes
-- **Instructions**: See `deploy/aws.md`
+### Migration Proposal Evaluation
 
-### 2. Azure Container Apps
-- **Pros**: Easy deployment, custom domains, enterprise integration
-- **Setup**: 15 minutes
-- **Instructions**: See `deploy/azure.md`
+1. **Upload Document**: Support for PDF, DOCX, TXT, and MD files
+2. **Select Evaluation Type**: Choose "Migration Proposal Evaluation"
+3. **Configure Options**: Select display preferences for detailed analysis
+4. **Review Results**: Comprehensive evaluation with:
+   - Phase-by-phase scoring (0-3 scale)
+   - Specification compliance analysis
+   - Gap identification and prioritisation
+   - Actionable recommendations
+   - Final score (0-100) with grade
 
-### 3. Docker (Any Platform)
+### Statement of Work Evaluation
+
+Framework for SOW assessment focusing on:
+- Scope definition and clarity
+- Deliverables specification
+- Timeline and milestones
+- Resource allocation
+- Risk and assumption management
+
+### Migration Proposal Generator
+
+Generate comprehensive migration proposals from discovery data:
+- Application portfolio analysis
+- Migration wave planning
+- Technology stack evaluation
+- Risk assessment and mitigation
+- Resource and timeline estimation
+
+## Configuration
+
+### Environment Variables
+
 ```bash
-# Build and run locally
-docker build -t pre-sales-evaluator .
-docker run -p 8501:8501 -e OPENAI_API_KEY="your-key" pre-sales-evaluator
-
-# Or use docker-compose
-docker-compose up
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-## 📊 Usage
+### Evaluation Criteria
 
-### Document Evaluation
-1. **Select Evaluation Type**: Choose "Migration Proposals" or "SOW Framework"
-2. **Upload Document**: Drag and drop your document
-3. **Wait for Analysis**: The system intelligently routes to relevant phases
-4. **Review Results**: Get comprehensive evaluation with scores and recommendations
+The system evaluates proposals against migrate.ai specification:
 
-### Migration Proposal Generation
-1. **Select "Migration Proposal Generator"**
-2. **Input Discovery Data**: Provide application and infrastructure details
-3. **Configure Parameters**: Set client information and project context
-4. **Generate Proposal**: AI creates comprehensive migration proposal
-5. **Export Results**: Download in multiple formats
+#### Core Principles
+- GenAI and agents used across the lifecycle
+- Minimum viable refactor preferred over full rewrites
+- Platform-neutral tooling and artefacts
+- Reusable components and fallback paths
+- Client self-sufficiency via internal tooling
+- Alignment with AWS MAP and Azure Migration Program
 
-## 🔒 Environment Variables
+#### Migration Phases
+1. **Strategise and Plan**: Assessment, strategy, and planning
+2. **Migrate and Modernise**: Execution with dual-track agile delivery
+3. **Manage and Optimise**: Operations and continuous improvement
 
-- `OPENAI_API_KEY`: Your OpenAI API key (required)
+## Deployment
 
-## 📁 Project Structure
+### Local Development
+```bash
+streamlit run app.py
+```
+
+### Production Deployment
+
+#### AWS ECS Fargate
+See `deploy/aws.md` for detailed ECS deployment instructions.
+
+#### Azure Container Instances
+See `deploy/azure.md` for Azure deployment guide.
+
+#### Docker
+```bash
+docker build -t migrate-ai-evaluator .
+docker run -p 8501:8501 -e OPENAI_API_KEY=your_key migrate-ai-evaluator
+```
+
+## Project Structure
 
 ```
-├── app.py                          # Unified Streamlit web interface
+├── app.py                          # Main Streamlit application
 ├── src/
-│   ├── agents/                     # Individual LLM agents
-│   │   ├── parse_discovery_input.py
-│   │   ├── workload_classifier.py
-│   │   ├── wave_planner.py
-│   │   ├── migration_strategist.py
-│   │   ├── content_generator.py
-│   │   ├── proposal_formatter.py
-│   │   └── proposal_nodes.py       # Remaining agents
-│   ├── graph/                      # LangGraph workflow orchestration
-│   │   ├── evaluation_graph.py    # Document evaluation workflow
-│   │   └── proposal_generation_graph.py # Proposal generation workflow
-│   ├── models/                     # Pydantic data models
+│   ├── agents/                     # LangGraph agent implementations
+│   │   ├── phase_evaluator.py      # Phase evaluation agents
+│   │   ├── gap_highlighter.py      # Gap analysis agent
+│   │   ├── recommendations_generator.py # Recommendations agent
+│   │   ├── spec_checker.py         # Specification compliance agent
+│   │   └── scoring_node.py         # Final scoring agent
+│   ├── models/                     # Data models and types
+│   │   ├── evaluation.py           # Evaluation data structures
+│   │   └── evaluation_types.py     # Evaluation type configurations
 │   ├── utils/                      # Utility functions
+│   │   ├── document_parser.py      # Document parsing utilities
+│   │   └── json_parser.py          # JSON response parsing
+│   ├── workflows/                  # LangGraph workflow definitions
+│   │   └── evaluation_workflow.py  # Main evaluation workflow
 │   └── config/                     # Configuration files
-├── deploy/                         # Deployment instructions
-├── tests/                          # Test suite
+│       └── modernize_ai_spec.yaml  # Migration evaluation criteria
 ├── requirements.txt                # Python dependencies
 ├── Dockerfile                      # Container configuration
-└── docker-compose.yml             # Local container orchestration
+└── README.md                       # This file
 ```
 
-## 🎯 Performance Optimizations
-
-- **Smart Routing**: Only evaluates relevant phases (saves ~50% processing time)
-- **Separated Agents**: Individual agents for better maintainability and testing
-- **Content Limiting**: Processes optimal content chunks for faster analysis
-- **Rate Limiting**: Built-in delays to avoid API limits
-- **Robust Parsing**: Fallback mechanisms for reliable operation
-- **Lazy LLM Initialization**: API keys loaded when needed
-
-## 🔧 Troubleshooting
-
-### Rate Limiting
-If you hit OpenAI rate limits, the system includes automatic delays and will retry.
-
-### Document Parsing Issues
-The system supports multiple document formats and includes debugging output.
-
-### API Key Issues
-Ensure your OpenAI API key is set correctly and has sufficient credits. The system uses lazy initialization to load API keys when needed.
-
-### Agent Architecture
-Each agent is separated into individual files for better maintainability. If you encounter import issues, check the agent function names in `src/agents/__init__.py`.
-
-## 📈 Monitoring
-
-- **Streamlit Health Check**: Built-in health monitoring
-- **Debug Output**: Comprehensive logging for troubleshooting
-- **Error Handling**: Graceful degradation with meaningful error messages
-- **Progress Tracking**: Real-time progress indicators for long-running operations
-
-## 🧪 Testing
-
-Run the test suite to ensure everything is working correctly:
-
-```bash
-pytest tests/ -v
-```
-
-The test suite covers:
-- Model validation and creation
-- Utility functions
-- Document parsing
-- Type detection
-- Agent functionality
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
 4. Add tests if applicable
-5. Run the test suite
-6. Submit a pull request
+5. Submit a pull request
 
-## 📄 License
+## Licence
 
-This project is licensed under the MIT License. 
+This project is proprietary software developed for migrate.ai evaluation purposes.
+
+## Support
+
+For support and questions, please contact the development team. 

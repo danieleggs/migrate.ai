@@ -131,28 +131,28 @@ Based on the migration strategies for each application, provide comprehensive ar
 
 **Best Practices:**
 - Cloud-native design principles
-- Scalability and performance optimization
-- Cost optimization strategies
+- Scalability and performance optimisation
+- Cost optimisation strategies
 - Disaster recovery and backup
 - Security and compliance frameworks
 
 Return JSON format:
-{
+{{
   "architecture_patterns": ["pattern1", "pattern2"],
-  "technology_stack": {
+  "technology_stack": {{
     "compute": ["service1", "service2"],
     "storage": ["service1", "service2"],
     "networking": ["service1", "service2"]
-  },
+  }},
   "recommendations": [
-    {
+    {{
       "category": "category_name",
       "recommendation": "detailed recommendation",
       "rationale": "why this is recommended",
       "priority": "High|Medium|Low"
-    }
+    }}
   ]
-}"""),
+}}"""),
         ("user", "Provide architecture recommendations based on these migration strategies:\n\n{strategies}")
     ])
     
@@ -191,7 +191,7 @@ Analyze the workloads and migration strategies to recommend GenAI tools and auto
 1. **Code Modernization**: Tools for code refactoring and modernization
 2. **Documentation Generation**: Automated documentation and knowledge transfer
 3. **Testing Automation**: AI-powered test generation and validation
-4. **Infrastructure as Code**: Automated IaC generation and optimization
+4. **Infrastructure as Code**: Automated IaC generation and optimisation
 5. **Monitoring and Observability**: AI-driven monitoring and alerting
 6. **Security and Compliance**: Automated security scanning and compliance
 
@@ -208,24 +208,24 @@ Analyze the workloads and migration strategies to recommend GenAI tools and auto
 - ROI measurement and success metrics
 
 Return JSON format:
-{
+{{
   "tool_categories": [
-    {
+    {{
       "category": "category_name",
       "tools": ["tool1", "tool2"],
       "use_cases": ["use_case1", "use_case2"],
       "expected_benefits": ["benefit1", "benefit2"],
       "implementation_effort": "Low|Medium|High"
-    }
+    }}
   ],
   "automation_opportunities": [
-    {
+    {{
       "opportunity": "automation description",
       "potential_savings": "time/cost savings",
       "complexity": "Low|Medium|High"
-    }
+    }}
   ]
-}"""),
+}}"""),
         ("user", "Recommend GenAI tools for these workloads and migration strategies:\n\nWorkloads: {workloads}\n\nStrategies: {strategies}")
     ])
     
@@ -283,11 +283,11 @@ Analyze the migration waves and strategies to provide detailed sprint effort est
 - Go-live and cutover activities
 
 Return JSON format:
-{
+{{
   "total_project_duration_weeks": number,
   "total_sprint_count": number,
   "wave_estimates": [
-    {
+    {{
       "wave_number": number,
       "wave_name": "name",
       "duration_weeks": number,
@@ -296,15 +296,15 @@ Return JSON format:
       "effort_person_weeks": number,
       "key_milestones": ["milestone1", "milestone2"],
       "risk_factors": ["risk1", "risk2"]
-    }
+    }}
   ],
-  "resource_requirements": {
+  "resource_requirements": {{
     "developers": number,
     "architects": number,
     "devops_engineers": number,
     "testers": number
-  }
-}"""),
+  }}
+}}"""),
         ("user", "Estimate sprint efforts for these migration waves and strategies:\n\nWaves: {waves}\n\nStrategies: {strategies}")
     ])
     
